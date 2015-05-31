@@ -1,0 +1,4 @@
+[package]
+name = "maillog"
+version = "0.1.0"
+authors = ["Vincent Brillault <git@lerya.net>"]
