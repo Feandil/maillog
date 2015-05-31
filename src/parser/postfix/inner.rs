@@ -163,10 +163,12 @@ mod tests {
 	fn dates_too_short() {
 		match Inner::parse(conf(), "".to_string()) {
 			Err(ParseError::DateTooShort) => (),
+			Err(x) => panic!("Wrong Error (should have been DateTooShort): {}", x),
 			_ => panic!("Should have failed")
 		}
 		match Inner::parse(conf(), "Sep  3 00:00:03 ".to_string()) {
 			Err(ParseError::DateTooShort) => (),
+			Err(x) => panic!("Wrong Error (should have been DateTooShort): {}", x),
 			_ => panic!("Should have failed")
 		}
 	}
@@ -175,6 +177,7 @@ mod tests {
 	fn non_ending_host() {
 		match Inner::parse(conf(), "Sep  3 00:00:03 x".to_string()) {
 			Err(ParseError::NonEndingHost) => (),
+			Err(x) => panic!("Wrong Error (should have been NonEndingHost): {}", x),
 			_ => panic!("Should have failed")
 		}
 	}
@@ -183,6 +186,7 @@ mod tests {
 	fn process_noise(){
 		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai clamsmtpd:".to_string()) {
 			Ok(None) => (),
+			Err(x) => panic!("Wrong Error (Should have been ignored): {}", x),
 			_ => panic!("Should have been ignored")
 		}
 	}
@@ -190,6 +194,7 @@ mod tests {
 	fn non_ending_queue(){
 		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in:".to_string()) {
 			Err(ParseError::NonEndingQueue) => (),
+			Err(x) => panic!("Wrong Error (should have been NonEndingQueue): {}", x),
 			_ => panic!("Should have failed")
 		}
 	}
@@ -198,6 +203,7 @@ mod tests {
 	fn non_ending_process(){
 		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup:".to_string()) {
 			Err(ParseError::NonEndingProcess) => (),
+			Err(x) => panic!("Wrong Error (should have been NonEndingProcess): {}", x),
 			_ => panic!("Should have failed")
 		}
 	}
@@ -206,6 +212,7 @@ mod tests {
 	fn bad_pid(){
 		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[abcd]:".to_string()) {
 			Err(ParseError::BadProcessID) => (),
+			Err(x) => panic!("Wrong Error (should have been BadProcessID): {}", x),
 			_ => panic!("Should have failed")
 		}
 	}
@@ -214,7 +221,7 @@ mod tests {
 	fn compare() {
 		let expected = init();
 		let (parsed, end) = match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B: ".to_string()){
-			Err(_) => panic!("Failed to parse"),
+			Err(x) => panic!("Failed to parse: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
 			Ok(Some(inner)) => inner
 		};
