@@ -8,6 +8,8 @@ pub enum ParseError {
 	NonEndingProcess,
 	BadProcessID,
 	NonEndingQueueID,
+	PickupBadUID,
+	PickupBadFrom,
 }
 
 impl fmt::Display for ParseError {
@@ -20,6 +22,8 @@ impl fmt::Display for ParseError {
 			&ParseError::NonEndingProcess => "Non Ending Process",
 			&ParseError::BadProcessID => "Bad Process ID",
 			&ParseError::NonEndingQueueID =>"Non Ending Queue ID",
+			&ParseError::PickupBadUID => "Pickup Bad UID",
+			&ParseError::PickupBadFrom => "Pickup Bad From",
 		};
 		write!(fmt, "{}", error)
 	}
