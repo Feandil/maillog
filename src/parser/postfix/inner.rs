@@ -3,6 +3,7 @@ use super::errors::ParseError;
 
 pub const DATE_LEN : usize = 15;
 
+#[derive(Debug)]
 pub struct Inner {
 	pub raw: String,
 	host_e: usize,

@@ -3,9 +3,7 @@ use super::super::config::ParserConfig;
 use super::super::errors::ParseError;
 use super::super::inner::Inner;
 
-
-// Pickup
-
+#[derive(Debug)]
 pub struct Pickup {
 	inner: Inner,
 	pub uid: u32,
