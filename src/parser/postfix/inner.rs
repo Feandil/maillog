@@ -46,48 +46,52 @@ impl PostfixMessage for Inner {
 }
 
 impl Inner {
-	pub fn parse(config: ParserConfig, raw: String) -> Result<Option<(Inner, usize)>, ParseError> {
-		let s = raw.clone();
+	pub fn parse(config: ParserConfig, s: String) -> Result<Option<(Inner, usize)>, ParseError> {
 		let length = s.len();
 		if length < DATE_LEN + 2 {
 			return Err(ParseError::DateTooShort);
 		}
-		let rest = &s[DATE_LEN+1..];
-		let (host_e, rest) = match rest.find(' ') {
-			None => return Err(ParseError::NonEndingHost),
-			Some(pos) => (DATE_LEN + 1 + pos, &rest[pos+1..])
-		};
-		let queue_s = host_e + 1;
-		let pos = match rest.find(':') {
-			None => return Err(ParseError::MissingProcess),
-			Some(pos) => pos
-		};
-		for prog in config.process_noise.iter() {
-			if prog == &rest[..pos] {
-				return Ok(None);
+		let (host_e, queue_s, queue_e, process_s, process_e, pid,
+		     queue_id_s, queue_id_e) = {
+			let rest = &s[DATE_LEN+1..];
+			let (host_e, rest) = match rest.find(' ') {
+				None => return Err(ParseError::NonEndingHost),
+				Some(pos) => (DATE_LEN + 1 + pos, &rest[pos+1..])
+			};
+			let queue_s = host_e + 1;
+			let pos = match rest.find(':') {
+				None => return Err(ParseError::MissingProcess),
+				Some(pos) => pos
+			};
+			for prog in config.process_noise.iter() {
+				if prog == &rest[..pos] {
+					return Ok(None);
+				}
 			}
-		}
-		let (queue_e, rest) = match rest.find('/') {
-			None => return Err(ParseError::NonEndingQueue),
-			Some(pos) => (queue_s + pos, &rest[pos+1..])
+			let (queue_e, rest) = match rest.find('/') {
+				None => return Err(ParseError::NonEndingQueue),
+				Some(pos) => (queue_s + pos, &rest[pos+1..])
+			};
+			let process_s = queue_e + 1;
+			let (process_e, rest) = match rest.find('[') {
+				None => return Err(ParseError::NonEndingProcess),
+				Some(pos) => (process_s + pos, &rest[pos+1..])
+			};
+			let pid_e = pos - (process_e - queue_s) - 2;
+			let pid = match rest[..pid_e].parse::<u32>() {
+				Err(_) => return Err(ParseError::BadProcessID),
+				Ok(val) => val
+			};
+			let queue_id_s = process_e + 1 + pid_e + 3;
+			let rest = &rest[pid_e + 3..];
+			let queue_id_e = match rest.find(':') {
+				None => return Err(ParseError::NonEndingQueueID),
+				Some(pos) => queue_id_s + pos
+			};
+			(host_e, queue_s, queue_e, process_s, process_e, pid,
+			 queue_id_s, queue_id_e)
 		};
-		let process_s = queue_e + 1;
-		let (process_e, rest) = match rest.find('[') {
-			None => return Err(ParseError::NonEndingProcess),
-			Some(pos) => (process_s + pos, &rest[pos+1..])
-		};
-		let pid_e = pos - (process_e - queue_s) - 2;
-		let pid = match rest[..pid_e].parse::<u32>() {
-			Err(_) => return Err(ParseError::BadProcessID),
-			Ok(val) => val
-		};
-		let queue_id_s = process_e + 1 + pid_e + 3;
-		let rest = &rest[pid_e + 3..];
-		let queue_id_e = match rest.find(':') {
-			None => return Err(ParseError::NonEndingQueueID),
-			Some(pos) => queue_id_s + pos
-		};
-		Ok(Some((Inner {raw: raw, host_e: host_e, queue_s: queue_s,
+		Ok(Some((Inner {raw: s, host_e: host_e, queue_s: queue_s,
 		                queue_e: queue_e, process_s: process_s,
 		                process_e: process_e, pid: pid,
 		                queue_id_s:queue_id_s, queue_id_e: queue_id_e},
