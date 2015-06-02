@@ -102,6 +102,7 @@ impl Inner {
 
 #[cfg(test)]
 mod tests {
+	use std::fmt;
 	use super::*;
 	use super::super::config::ParserConfig;
 	use super::super::errors::ParseError;
@@ -254,5 +255,6 @@ mod tests {
 		assert_eq!(expected.queue_id_s, parsed.queue_id_s);
 		assert_eq!(expected.queue_id_e, parsed.queue_id_e);
 		assert_eq!(end, 60);
+		assert_eq!(fmt::format(format_args!("{:?}", parsed)), "Inner { raw: \"Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B:\", host_e: 21, queue_s: 22, queue_e: 32, process_s: 33, process_e: 40, pid: 31247, queue_id_s: 49, queue_id_e: 59 }");
 	}
 }
