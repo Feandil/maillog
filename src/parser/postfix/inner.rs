@@ -79,6 +79,9 @@ impl Inner {
 				Some(pos) => (process_s + pos, &rest[pos+1..])
 			};
 			let pid_e = pos - (process_e - queue_s) - 2;
+			if !rest[pid_e..].starts_with("]: ") {
+				return Err(ParseError::BadProcessID)
+			}
 			let pid = match rest[..pid_e].parse::<u32>() {
 				Err(_) => return Err(ParseError::BadProcessID),
 				Ok(val) => val
@@ -186,6 +189,11 @@ mod tests {
 
 	#[test]
 	fn missing_process() {
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai ".to_string()) {
+			Err(ParseError::MissingProcess) => (),
+			Err(x) => panic!("Wrong Error (should have been MissingProcess): {}", x),
+			_ => panic!("Should have failed")
+		}
 		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix".to_string()) {
 			Err(ParseError::MissingProcess) => (),
 			Err(x) => panic!("Wrong Error (should have been MissingProcess): {}", x),
@@ -221,6 +229,16 @@ mod tests {
 
 	#[test]
 	fn bad_pid(){
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247:".to_string()) {
+			Err(ParseError::BadProcessID) => (),
+			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
+			_ => panic!("Should have failed")
+		}
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]:".to_string()) {
+			Err(ParseError::BadProcessID) => (),
+			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
+			_ => panic!("Should have failed")
+		}
 		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[abcd]:".to_string()) {
 			Err(ParseError::BadProcessID) => (),
 			Err(x) => panic!("Wrong Error (should have been BadProcessID): {}", x),
@@ -230,6 +248,11 @@ mod tests {
 
 	#[test]
 	fn non_ending_queue_id(){
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: ".to_string()) {
+			Err(ParseError::NonEndingQueueID) => (),
+			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
+			_ => panic!("Should have failed")
+		}
 		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B".to_string()) {
 			Err(ParseError::NonEndingQueueID) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
