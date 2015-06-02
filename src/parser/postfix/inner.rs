@@ -108,7 +108,7 @@ mod tests {
 
 	fn init() -> Inner {
 		Inner {
-			raw: "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B: ".to_string(),
+			raw: "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B:".to_string(),
 			host_e: 21,
 			queue_s: 22,
 			queue_e: 32,
@@ -176,9 +176,18 @@ mod tests {
 
 	#[test]
 	fn non_ending_host() {
-		match Inner::parse(conf(), "Sep  3 00:00:03 x".to_string()) {
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai".to_string()) {
 			Err(ParseError::NonEndingHost) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingHost): {}", x),
+			_ => panic!("Should have failed")
+		}
+	}
+
+	#[test]
+	fn missing_process() {
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix".to_string()) {
+			Err(ParseError::MissingProcess) => (),
+			Err(x) => panic!("Wrong Error (should have been MissingProcess): {}", x),
 			_ => panic!("Should have failed")
 		}
 	}
@@ -219,9 +228,18 @@ mod tests {
 	}
 
 	#[test]
+	fn non_ending_queue_id(){
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B".to_string()) {
+			Err(ParseError::NonEndingQueueID) => (),
+			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
+			_ => panic!("Should have failed")
+		}
+	}
+
+	#[test]
 	fn compare() {
 		let expected = init();
-		let (parsed, end) = match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B: ".to_string()){
+		let (parsed, end) = match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B:".to_string()){
 			Err(x) => panic!("Failed to parse: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
 			Ok(Some(inner)) => inner

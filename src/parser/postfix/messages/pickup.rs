@@ -71,23 +71,23 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_valid() {
-		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=106 from=<root@example.com>".to_string();
+	fn parse_invalid_inner() {
+		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B".to_string();
 		let pick = match parse_pickup(s) {
-			Err(x) => panic!("Parser Error: {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Err(ParseError::NonEndingQueueID) => (),
+			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
+			_ => panic!("This should have failed")
 		};
-		assert_eq!(pick.uid, 106);
-		assert_eq!(pick.from(), "root@example.com");
-		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=1024 from=root@example.com".to_string();
+	}
+
+	#[test]
+	fn parse_ignore_inner () {
+		let s = "Sep  3 00:00:03 yuuai clamsmtpd:".to_string();
 		let pick = match parse_pickup(s) {
-			Err(x) => panic!("Parser Error: {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(None) => (),
+			Err(x) => panic!("Wrong Error (Should have been ignored): {}", x),
+			_ => panic!("Should have been ignored")
 		};
-		assert_eq!(pick.uid, 1024);
-		assert_eq!(pick.from(), "root@example.com");
 	}
 
 	#[test]
@@ -131,6 +131,26 @@ mod tests {
 			Ok(None) => panic!("This should not have been ignored"),
 			Ok(Some(x)) => panic!("This should not have worked: the uid is bad")
 		};
+	}
+
+	#[test]
+	fn parse_valid() {
+		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=106 from=<root@example.com>".to_string();
+		let pick = match parse_pickup(s) {
+			Err(x) => panic!("Parser Error: {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some(x)) => x
+		};
+		assert_eq!(pick.uid, 106);
+		assert_eq!(pick.from(), "root@example.com");
+		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=1024 from=root@example.com".to_string();
+		let pick = match parse_pickup(s) {
+			Err(x) => panic!("Parser Error: {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some(x)) => x
+		};
+		assert_eq!(pick.uid, 1024);
+		assert_eq!(pick.from(), "root@example.com");
 	}
 }
 
