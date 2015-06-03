@@ -239,7 +239,7 @@ mod tests {
 			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
 			_ => panic!("Should have failed")
 		}
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[abcd]:".to_string()) {
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[abcd]: ".to_string()) {
 			Err(ParseError::BadProcessID) => (),
 			Err(x) => panic!("Wrong Error (should have been BadProcessID): {}", x),
 			_ => panic!("Should have failed")
