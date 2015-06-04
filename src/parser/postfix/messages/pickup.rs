@@ -62,7 +62,6 @@ impl Pickup {
 mod tests {
 	use std::fmt;
 	use super::*;
-	use super::super::super::inner::Inner;
 	use super::super::super::config::ParserConfig;
 	use super::super::super::errors::ParseError;
 
@@ -74,7 +73,7 @@ mod tests {
 	#[test]
 	fn parse_invalid_inner() {
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B".to_string();
-		let pick = match parse_pickup(s) {
+		let _ = match parse_pickup(s) {
 			Err(ParseError::NonEndingQueueID) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
 			_ => panic!("This should have failed")
@@ -84,7 +83,7 @@ mod tests {
 	#[test]
 	fn parse_ignore_inner () {
 		let s = "Sep  3 00:00:03 yuuai clamsmtpd:".to_string();
-		let pick = match parse_pickup(s) {
+		let _ = match parse_pickup(s) {
 			Ok(None) => (),
 			Err(x) => panic!("Wrong Error (Should have been ignored): {}", x),
 			_ => panic!("Should have been ignored")
@@ -94,43 +93,43 @@ mod tests {
 	#[test]
 	fn parse_broken_uid() {
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid".to_string();
-		let pick = match parse_pickup(s) {
+		let _ = match parse_pickup(s) {
 			Err(ParseError::PickupBadUID) => (),
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => panic!("This should not have worked: the uid is bad")
+			Ok(Some(_)) => panic!("This should not have worked: the uid is bad")
 		};
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=".to_string();
-		let pick = match parse_pickup(s) {
+		let _ = match parse_pickup(s) {
 			Err(ParseError::PickupBadUID) => (),
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => panic!("This should not have worked: the uid is bad")
+			Ok(Some(_)) => panic!("This should not have worked: the uid is bad")
 		};
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid= ".to_string();
-		let pick = match parse_pickup(s) {
+		let _ = match parse_pickup(s) {
 			Err(ParseError::PickupBadUID) => (),
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => panic!("This should not have worked: the uid is bad")
+			Ok(Some(_)) => panic!("This should not have worked: the uid is bad")
 		};
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=xxx ".to_string();
-		let pick = match parse_pickup(s) {
+		let _ = match parse_pickup(s) {
 			Err(ParseError::PickupBadUID) => (),
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => panic!("This should not have worked: the uid is bad")
+			Ok(Some(_)) => panic!("This should not have worked: the uid is bad")
 		};
 	}
 
 	#[test]
 	fn parse_broken_from() {
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=106 from".to_string();
-		let pick = match parse_pickup(s) {
+		let _ = match parse_pickup(s) {
 			Err(ParseError::PickupBadFrom) => (),
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => panic!("This should not have worked: the uid is bad")
+			Ok(Some(_)) => panic!("This should not have worked: the uid is bad")
 		};
 	}
 
