@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use super::super::config::ParserConfig;
 use super::super::errors::ParseError;
-use super::super::inner::Inner;
+use super::inner::Inner;
 
 #[derive(Debug)]
 pub struct Pickup {

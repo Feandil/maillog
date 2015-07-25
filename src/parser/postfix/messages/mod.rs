@@ -1,1 +1,2 @@
+mod inner;
 mod pickup;
