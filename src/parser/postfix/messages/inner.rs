@@ -280,4 +280,13 @@ mod tests {
 		assert_eq!(end, 60);
 		assert_eq!(fmt::format(format_args!("{:?}", parsed)), "Inner { raw: \"Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B:\", host_e: 21, queue_s: 22, queue_e: 32, process_s: 33, process_e: 40, pid: 31247, queue_id_s: 49, queue_id_e: 59 }");
 	}
+
+	#[test]
+	fn ignore() {
+		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai clamsmtpd:".to_string()) {
+			Ok(None) => (),
+			Err(x) => panic!("Wrong Error (Should have been ignored): {}", x),
+			_ => panic!("Should have been ignored")
+		}
+	}						
 }
