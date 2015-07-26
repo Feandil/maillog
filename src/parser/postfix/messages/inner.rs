@@ -16,37 +16,27 @@ pub struct Inner {
 	queue_id_e: usize
 }
 
-pub trait PostfixMessage {
-	fn date<'a>(&'a self) -> &'a str;
-	fn host<'a>(&'a self) -> &'a str;
-	fn queue<'a>(&'a self) -> &'a str;
-	fn process<'a>(&'a self) -> &'a str;
-	fn queue_id<'a>(&'a self) -> &'a str;
-}
-
-impl PostfixMessage for Inner {
-	fn date<'a>(&'a self) -> &'a str {
+impl Inner {
+	pub fn date<'a>(&'a self) -> &'a str {
 		&self.raw[..DATE_LEN]
 	}
 
-	fn host<'a>(&'a self) -> &'a str {
+	pub fn host<'a>(&'a self) -> &'a str {
 		&self.raw[DATE_LEN+1..self.host_e]
 	}
 
-	fn queue<'a>(&'a self) -> &'a str {
+	pub fn queue<'a>(&'a self) -> &'a str {
 		&self.raw[self.queue_s..self.queue_e]
 	}
 
-	fn process<'a>(&'a self) -> &'a str {
+	pub fn process<'a>(&'a self) -> &'a str {
 		&self.raw[self.process_s..self.process_e]
 	}
 
-	fn queue_id<'a>(&'a self) -> &'a str {
+	pub fn queue_id<'a>(&'a self) -> &'a str {
 		&self.raw[self.queue_id_s..self.queue_id_e]
 	}
-}
 
-impl Inner {
 	pub fn parse(config: ParserConfig, s: String) -> Result<Option<(Inner, usize)>, ParseError> {
 		let length = s.len();
 		if length < DATE_LEN + 2 {
