@@ -1,5 +1,4 @@
 use std::ops::Deref;
-use super::super::ParserConfig;
 use super::super::ParseError;
 use super::Inner;
 
