@@ -72,7 +72,7 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_broken_uid() {
+	fn broken_uid() {
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid".to_string();
 		let _ = match parse_pickup(s) {
 			Err(ParseError::PickupBadUID) => (),
@@ -104,7 +104,7 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_broken_from() {
+	fn broken_from() {
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=106 from".to_string();
 		let _ = match parse_pickup(s) {
 			Err(ParseError::PickupBadFrom) => (),
@@ -115,7 +115,7 @@ mod tests {
 	}
 
 	#[test]
-	fn parse_valid() {
+	fn valid() {
 		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=106 from=<root@example.com>".to_string();
 		let pick = match parse_pickup(s) {
 			Err(x) => panic!("Parser Error: {}", x),
