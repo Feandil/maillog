@@ -19,7 +19,7 @@ pub struct Inner {
 	queue_s: usize,
 	queue_e: usize,
 	pub process: Process,
-	pid: u32,
+	pub pid: u32,
 	queue_id_s: usize,
 	queue_id_e: usize
 }
