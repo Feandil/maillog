@@ -78,12 +78,15 @@ impl Inner {
 			};
 			let queue_id_s = process_e + 1 + pid_e + 3;
 			let rest = &rest[pid_e + 3..];
-			let queue_id_e = match rest.find(':') {
+			let len = match rest.find(':') {
 				None => return Err(ParseError::NonEndingQueueID),
-				Some(pos) => queue_id_s + pos
+				Some(pos) => pos
 			};
+			if rest[..len].bytes().any(|b| ('0' as u8 > b || b > '9' as u8) && ('A' as u8 > b || b > 'F' as u8)) {
+				return Err(ParseError::NonEndingQueueID);
+			}
 			(host_e, queue_s, queue_e, process_s, process_e, pid,
-			 queue_id_s, queue_id_e)
+			 queue_id_s, queue_id_s + len)
 		};
 		Ok(Some((Inner {raw: s, host_e: host_e, queue_s: queue_s,
 		                queue_e: queue_e, process_s: process_s,
