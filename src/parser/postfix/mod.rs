@@ -1,3 +1,6 @@
 mod config;
 mod errors;
-mod messages;
+pub mod messages;
+
+pub use self::config::ParserConfig;
+pub use self::errors::ParseError;

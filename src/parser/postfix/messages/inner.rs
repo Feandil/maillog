@@ -1,5 +1,5 @@
-use super::super::config::ParserConfig;
-use super::super::errors::ParseError;
+use super::super::ParserConfig;
+use super::super::ParseError;
 
 pub const DATE_LEN : usize = 15;
 
@@ -107,8 +107,8 @@ impl Inner {
 mod tests {
 	use std::fmt;
 	use super::*;
-	use super::super::super::config::ParserConfig;
-	use super::super::super::errors::ParseError;
+	use super::super::super::ParserConfig;
+	use super::super::super::ParseError;
 
 	fn init() -> Inner {
 		Inner {

@@ -1,7 +1,7 @@
 use std::ops::Deref;
-use super::super::config::ParserConfig;
-use super::super::errors::ParseError;
-use super::inner::Inner;
+use super::super::ParserConfig;
+use super::super::ParseError;
+use super::Inner;
 
 #[derive(Debug)]
 pub struct Pickup {
@@ -57,9 +57,9 @@ impl Pickup {
 mod tests {
 	use std::fmt;
 	use super::*;
-	use super::super::inner::Inner;
-	use super::super::super::config::ParserConfig;
-	use super::super::super::errors::ParseError;
+	use super::super::Inner;
+	use super::super::super::ParserConfig;
+	use super::super::super::ParseError;
 
 	fn parse_pickup(s: String) -> Result<Option<Pickup>, ParseError> {
 		let conf = ParserConfig { process_noise: vec!["clamsmtpd".to_string()] };
