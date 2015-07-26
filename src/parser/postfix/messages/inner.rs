@@ -50,15 +50,15 @@ impl Inner {
 				Some(pos) => (DATE_LEN + 1 + pos, &rest[pos+1..])
 			};
 			let queue_s = host_e + 1;
+			for prog in config.process_noise.iter() {
+				if rest.starts_with(prog) {
+					return Ok(None);
+				}
+			}
 			let pos = match rest.find(':') {
 				None => return Err(ParseError::MissingProcess),
 				Some(pos) => pos
 			};
-			for prog in config.process_noise.iter() {
-				if prog == &rest[..pos] {
-					return Ok(None);
-				}
-			}
 			let (queue_e, rest) = match rest.find('/') {
 				None => return Err(ParseError::NonEndingQueue),
 				Some(pos) => (queue_s + pos, &rest[pos+1..])
