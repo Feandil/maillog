@@ -10,6 +10,18 @@ pub enum ParseError {
 	NonEndingQueueID,
 	PickupBadUID,
 	PickupBadFrom,
+	ForwardNoTo,
+	ForwardBadTo,
+	ForwardBadOrigTo,
+	ForwardNoRelay,
+	ForwardBadRelay,
+	ForwardNoDelays,
+	ForwardNoDelay,
+	ForwardNoDSN,
+	ForwardBadDSN,
+	PickupDSNNotInt,
+	ForwardDSNBadLen,
+	ForwardNoStatus
 }
 
 impl fmt::Display for ParseError {
@@ -24,6 +36,18 @@ impl fmt::Display for ParseError {
 			&ParseError::NonEndingQueueID => "Non Ending Queue ID",
 			&ParseError::PickupBadUID => "Pickup Bad UID",
 			&ParseError::PickupBadFrom => "Pickup Bad From",
+			&ParseError::ForwardNoTo => "Forward no To",
+			&ParseError::ForwardBadTo => "Forward non ending To",
+			&ParseError::ForwardBadOrigTo => "Forward non ending Orig_to",
+			&ParseError::ForwardNoRelay => "Forward no Relay",
+			&ParseError::ForwardBadRelay => "Forward non ending Relay",
+			&ParseError::ForwardNoDelays => "Forward no Delays",
+			&ParseError::ForwardNoDelay => "Forward no Delay",
+			&ParseError::ForwardNoDSN => "Forward no DSN",
+			&ParseError::ForwardBadDSN => "Forward non ending DSN",
+			&ParseError::PickupDSNNotInt => "Forward DSN containing non u8",
+			&ParseError::ForwardDSNBadLen => "Forward DSN not containing 3 u8",
+			&ParseError::ForwardNoStatus => "Forward no Status"
 		};
 		write!(fmt, "{}", error)
 	}
@@ -56,5 +80,17 @@ mod tests {
 		assert_print_eq(ParseError::NonEndingQueueID, "Non Ending Queue ID");
 		assert_print_eq(ParseError::PickupBadUID, "Pickup Bad UID");
 		assert_print_eq(ParseError::PickupBadFrom, "Pickup Bad From");
+		assert_print_eq(ParseError::ForwardNoTo, "Forward no To");
+		assert_print_eq(ParseError::ForwardBadTo, "Forward non ending To");
+		assert_print_eq(ParseError::ForwardBadOrigTo, "Forward non ending Orig_to");
+		assert_print_eq(ParseError::ForwardNoRelay, "Forward no Relay");
+		assert_print_eq(ParseError::ForwardBadRelay, "Forward non ending Relay");
+		assert_print_eq(ParseError::ForwardNoDelays, "Forward no Delays");
+		assert_print_eq(ParseError::ForwardNoDelay, "Forward no Delay");
+		assert_print_eq(ParseError::ForwardNoDSN, "Forward no DSN");
+		assert_print_eq(ParseError::ForwardBadDSN, "Forward non ending DSN");
+		assert_print_eq(ParseError::PickupDSNNotInt, "Forward DSN containing non u8");
+		assert_print_eq(ParseError::ForwardDSNBadLen, "Forward DSN not containing 3 u8");
+		assert_print_eq(ParseError::ForwardNoStatus, "Forward no Status");
 	}
 }
