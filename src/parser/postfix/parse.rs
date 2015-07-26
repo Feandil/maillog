@@ -2,7 +2,7 @@ use super::ParserConfig;
 use super::ParseError;
 use super::messages::*;
 
-pub fn parse_line(raw: String, conf: ParserConfig) -> Result<Option<Message>, ParseError> {
+pub fn parse_line(raw: String, conf: &ParserConfig) -> Result<Option<Message>, ParseError> {
 	let (inner, start) = match Inner::parse(conf, raw) {
 		Err(error) => return Err(error),
 		Ok(None) => return Ok(None),
@@ -42,7 +42,7 @@ mod tests {
 
 	fn parse(s: String) -> Result<Option<Message>, ParseError> {
 		let conf = ParserConfig { process_noise: vec!["clamsmtpd".to_string()] };
-		parse_line(s, conf)
+		parse_line(s, &conf)
 	}
 
 	#[test]

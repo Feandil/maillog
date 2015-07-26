@@ -62,7 +62,7 @@ mod tests {
 
 	fn parse_pickup(s: String) -> Result<Option<Pickup>, ParseError> {
 		let conf = ParserConfig { process_noise: vec!["clamsmtpd".to_string()] };
-		let (inner, start) = match Inner::parse(conf, s) {
+		let (inner, start) = match Inner::parse(&conf, s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
 			Ok(Some((x,y))) => (x,y)

@@ -37,7 +37,7 @@ impl Inner {
 		&self.raw[self.queue_id_s..self.queue_id_e]
 	}
 
-	pub fn parse(config: ParserConfig, s: String) -> Result<Option<(Inner, usize)>, ParseError> {
+	pub fn parse(config: &ParserConfig, s: String) -> Result<Option<(Inner, usize)>, ParseError> {
 		let length = s.len();
 		if length < DATE_LEN + 2 {
 			return Err(ParseError::DateTooShort);
@@ -156,12 +156,12 @@ mod tests {
 
 	#[test]
 	fn dates_too_short() {
-		match Inner::parse(conf(), "".to_string()) {
+		match Inner::parse(&conf(), "".to_string()) {
 			Err(ParseError::DateTooShort) => (),
 			Err(x) => panic!("Wrong Error (should have been DateTooShort): {}", x),
 			_ => panic!("Should have failed")
 		}
-		match Inner::parse(conf(), "Sep  3 00:00:03 ".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 ".to_string()) {
 			Err(ParseError::DateTooShort) => (),
 			Err(x) => panic!("Wrong Error (should have been DateTooShort): {}", x),
 			_ => panic!("Should have failed")
@@ -170,7 +170,7 @@ mod tests {
 
 	#[test]
 	fn non_ending_host() {
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai".to_string()) {
 			Err(ParseError::NonEndingHost) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingHost): {}", x),
 			_ => panic!("Should have failed")
@@ -179,12 +179,12 @@ mod tests {
 
 	#[test]
 	fn missing_process() {
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai ".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai ".to_string()) {
 			Err(ParseError::MissingProcess) => (),
 			Err(x) => panic!("Wrong Error (should have been MissingProcess): {}", x),
 			_ => panic!("Should have failed")
 		}
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix".to_string()) {
 			Err(ParseError::MissingProcess) => (),
 			Err(x) => panic!("Wrong Error (should have been MissingProcess): {}", x),
 			_ => panic!("Should have failed")
@@ -193,7 +193,7 @@ mod tests {
 
 	#[test]
 	fn process_noise(){
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai clamsmtpd:".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai clamsmtpd:".to_string()) {
 			Ok(None) => (),
 			Err(x) => panic!("Wrong Error (Should have been ignored): {}", x),
 			_ => panic!("Should have been ignored")
@@ -201,7 +201,7 @@ mod tests {
 	}
 	#[test]
 	fn non_ending_queue(){
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in:".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in:".to_string()) {
 			Err(ParseError::NonEndingQueue) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingQueue): {}", x),
 			_ => panic!("Should have failed")
@@ -210,7 +210,7 @@ mod tests {
 
 	#[test]
 	fn non_ending_process(){
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup:".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup:".to_string()) {
 			Err(ParseError::NonEndingProcess) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingProcess): {}", x),
 			_ => panic!("Should have failed")
@@ -219,17 +219,17 @@ mod tests {
 
 	#[test]
 	fn bad_pid(){
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247:".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247:".to_string()) {
 			Err(ParseError::BadProcessID) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
 			_ => panic!("Should have failed")
 		}
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]:".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]:".to_string()) {
 			Err(ParseError::BadProcessID) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
 			_ => panic!("Should have failed")
 		}
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[abcd]: ".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[abcd]: ".to_string()) {
 			Err(ParseError::BadProcessID) => (),
 			Err(x) => panic!("Wrong Error (should have been BadProcessID): {}", x),
 			_ => panic!("Should have failed")
@@ -238,12 +238,12 @@ mod tests {
 
 	#[test]
 	fn non_ending_queue_id(){
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: ".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: ".to_string()) {
 			Err(ParseError::NonEndingQueueID) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
 			_ => panic!("Should have failed")
 		}
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B".to_string()) {
 			Err(ParseError::NonEndingQueueID) => (),
 			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
 			_ => panic!("Should have failed")
@@ -253,7 +253,7 @@ mod tests {
 	#[test]
 	fn compare() {
 		let expected = init();
-		let (parsed, end) = match Inner::parse(conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B:".to_string()){
+		let (parsed, end) = match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B:".to_string()){
 			Err(x) => panic!("Failed to parse: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
 			Ok(Some(inner)) => inner
@@ -273,7 +273,7 @@ mod tests {
 
 	#[test]
 	fn ignore() {
-		match Inner::parse(conf(), "Sep  3 00:00:03 yuuai clamsmtpd:".to_string()) {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai clamsmtpd:".to_string()) {
 			Ok(None) => (),
 			Err(x) => panic!("Wrong Error (Should have been ignored): {}", x),
 			_ => panic!("Should have been ignored")
