@@ -6,6 +6,7 @@ pub enum ParseError {
 	MissingProcess,
 	NonEndingQueue,
 	NonEndingProcess,
+	UnknownProcess,
 	BadProcessID,
 	NonEndingQueueID,
 	PickupBadUID,
@@ -32,6 +33,7 @@ impl fmt::Display for ParseError {
 			&ParseError::MissingProcess => "Missing Process",
 			&ParseError::NonEndingQueue => "Non Ending Queue",
 			&ParseError::NonEndingProcess => "Non Ending Process",
+			&ParseError::UnknownProcess => "Unknown Process name",
 			&ParseError::BadProcessID => "Bad Process ID",
 			&ParseError::NonEndingQueueID => "Non Ending Queue ID",
 			&ParseError::PickupBadUID => "Pickup Bad UID",
@@ -76,6 +78,7 @@ mod tests {
 		assert_print_eq(ParseError::MissingProcess, "Missing Process");
 		assert_print_eq(ParseError::NonEndingQueue, "Non Ending Queue");
 		assert_print_eq(ParseError::NonEndingProcess, "Non Ending Process");
+		assert_print_eq(ParseError::UnknownProcess, "Unknown Process name");
 		assert_print_eq(ParseError::BadProcessID, "Bad Process ID");
 		assert_print_eq(ParseError::NonEndingQueueID, "Non Ending Queue ID");
 		assert_print_eq(ParseError::PickupBadUID, "Pickup Bad UID");

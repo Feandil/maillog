@@ -131,7 +131,7 @@ mod tests {
 		};
 		assert_eq!(pick.uid, 1024);
 		assert_eq!(pick.from(), "root@example.com");
-		assert_eq!(fmt::format(format_args!("{:?}", pick)), "Pickup { inner: Inner { raw: \"Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=1024 from=root@example.com\", host_e: 21, queue_s: 22, queue_e: 29, process_s: 30, process_e: 36, pid: 12797, queue_id_s: 45, queue_id_e: 55 }, uid: 1024, from_s: 71, from_e: 87 }");
+		assert_eq!(fmt::format(format_args!("{:?}", pick)), "Pickup { inner: Inner { raw: \"Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B: uid=1024 from=root@example.com\", host_e: 21, queue_s: 22, queue_e: 29, process: Pickup, pid: 12797, queue_id_s: 45, queue_id_e: 55 }, uid: 1024, from_s: 71, from_e: 87 }");
 	}
 }
 

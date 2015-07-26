@@ -8,28 +8,28 @@ pub fn parse_line(raw: String, conf: &ParserConfig) -> Result<Option<Message>, P
 		Ok(None) => return Ok(None),
 		Ok(Some((x,y))) => (x,y)
 	};
-	match &inner.process().to_owned()[..] {
-		"pickup" => match Pickup::parse(inner, start) {
+	match inner.process {
+		Process::Pickup => match Pickup::parse(inner, start) {
 			Err(error) => Err(error),
 			Ok(None) => Ok(None),
 			Ok(Some(m)) => Ok(Some(Message::Pickup { m:m }))
 		},
-		"pipe" => match Forward::parse(inner, start) {
+		Process::Pipe => match Forward::parse(inner, start) {
 			Err(error) => Err(error),
 			Ok(None) => Ok(None),
 			Ok(Some(m)) => Ok(Some(Message::Forward { m:m }))
 		},
-		"smtp" => match Forward::parse(inner, start) {
+		Process::Smtp => match Forward::parse(inner, start) {
 			Err(error) => Err(error),
 			Ok(None) => Ok(None),
 			Ok(Some(m)) => Ok(Some(Message::Forward { m:m }))
 		},
-		"local" => match Forward::parse(inner, start) {
+		Process::Local => match Forward::parse(inner, start) {
 			Err(error) => Err(error),
 			Ok(None) => Ok(None),
 			Ok(Some(m)) => Ok(Some(Message::Forward { m:m }))
 		},
-		s => panic!("Unsupported process: {}", s)
+		s => panic!("Unsupported process: {:?}", s)
 	}
 }
 

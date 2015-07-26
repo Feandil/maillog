@@ -3,14 +3,22 @@ use super::super::ParseError;
 
 pub const DATE_LEN : usize = 15;
 
+#[derive(Debug, PartialEq)]
+pub enum Process {
+	Cleanup,
+	Local,
+	Pickup,
+	Pipe,
+	Smtp,
+}
+
 #[derive(Debug)]
 pub struct Inner {
 	pub raw: String,
 	host_e: usize,
 	queue_s: usize,
 	queue_e: usize,
-	process_s: usize,
-	process_e: usize,
+	pub process: Process,
 	pid: u32,
 	queue_id_s: usize,
 	queue_id_e: usize
@@ -29,10 +37,6 @@ impl Inner {
 		&self.raw[self.queue_s..self.queue_e]
 	}
 
-	pub fn process<'a>(&'a self) -> &'a str {
-		&self.raw[self.process_s..self.process_e]
-	}
-
 	pub fn queue_id<'a>(&'a self) -> &'a str {
 		&self.raw[self.queue_id_s..self.queue_id_e]
 	}
@@ -42,7 +46,7 @@ impl Inner {
 		if length < DATE_LEN + 2 {
 			return Err(ParseError::DateTooShort);
 		}
-		let (host_e, queue_s, queue_e, process_s, process_e, pid,
+		let (host_e, queue_s, queue_e, process, pid,
 		     queue_id_s, queue_id_e) = {
 			let rest = &s[DATE_LEN+1..];
 			let (host_e, rest) = match rest.find(' ') {
@@ -63,12 +67,21 @@ impl Inner {
 				None => return Err(ParseError::NonEndingQueue),
 				Some(pos) => (queue_s + pos, &rest[pos+1..])
 			};
-			let process_s = queue_e + 1;
-			let (process_e, rest) = match rest.find('[') {
+			let process_len = match rest.find('[') {
 				None => return Err(ParseError::NonEndingProcess),
-				Some(pos) => (process_s + pos, &rest[pos+1..])
+				Some(len) => len
 			};
-			let pid_e = pos - (process_e - queue_s) - 2;
+			let process = match &rest[..process_len] {
+				"cleanup" => Process::Cleanup,
+				"local" => Process::Local,
+				"pickup" => Process::Pickup,
+				"pipe" => Process::Pipe,
+				"smtp" => Process::Smtp,
+				_ => return Err(ParseError::UnknownProcess),
+			};
+			let rest = &rest[process_len+1..];
+			let process_end = queue_e + 1 + process_len;
+			let pid_e = pos - (process_end - queue_s) - 2;
 			if !rest[pid_e..].starts_with("]: ") {
 				return Err(ParseError::BadProcessID)
 			}
@@ -76,7 +89,7 @@ impl Inner {
 				Err(_) => return Err(ParseError::BadProcessID),
 				Ok(val) => val
 			};
-			let queue_id_s = process_e + 1 + pid_e + 3;
+			let queue_id_s = process_end + 1 + pid_e + 3;
 			let rest = &rest[pid_e + 3..];
 			let len = match rest.find(':') {
 				None => return Err(ParseError::NonEndingQueueID),
@@ -85,12 +98,11 @@ impl Inner {
 			if rest[..len].bytes().any(|b| ('0' as u8 > b || b > '9' as u8) && ('A' as u8 > b || b > 'F' as u8)) {
 				return Err(ParseError::NonEndingQueueID);
 			}
-			(host_e, queue_s, queue_e, process_s, process_e, pid,
+			(host_e, queue_s, queue_e, process, pid,
 			 queue_id_s, queue_id_s + len)
 		};
 		Ok(Some((Inner {raw: s, host_e: host_e, queue_s: queue_s,
-		                queue_e: queue_e, process_s: process_s,
-		                process_e: process_e, pid: pid,
+		                queue_e: queue_e, process: process, pid: pid,
 		                queue_id_s:queue_id_s, queue_id_e: queue_id_e},
 		         queue_id_e + 1)))
 	}
@@ -109,8 +121,7 @@ mod tests {
 			host_e: 21,
 			queue_s: 22,
 			queue_e: 32,
-			process_s: 33,
-			process_e: 40,
+			process: Process::Cleanup,
 			pid: 31247,
 			queue_id_s: 49,
 			queue_id_e: 59
@@ -133,12 +144,6 @@ mod tests {
 	fn queue() {
 		let i = init();
 		assert_eq!(i.queue(), "postfix-in");
-	}
-
-	#[test]
-	fn process() {
-		let i = init();
-		assert_eq!(i.process(), "cleanup");
 	}
 
 	#[test]
@@ -221,6 +226,15 @@ mod tests {
 	}
 
 	#[test]
+	fn unknown_process() {
+		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/xxx[:".to_string()) {
+			Err(ParseError::UnknownProcess) => (),
+			Err(x) => panic!("Wrong Error (should have been UnknownProcess): {}", x),
+			_ => panic!("Should have failed")
+		}
+	}
+
+	#[test]
 	fn bad_pid(){
 		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247:".to_string()) {
 			Err(ParseError::BadProcessID) => (),
@@ -265,13 +279,12 @@ mod tests {
 		assert_eq!(expected.host_e, parsed.host_e);
 		assert_eq!(expected.queue_s, parsed.queue_s);
 		assert_eq!(expected.queue_e, parsed.queue_e);
-		assert_eq!(expected.process_s, parsed.process_s);
-		assert_eq!(expected.process_e, parsed.process_e);
+		assert_eq!(expected.process, parsed.process);
 		assert_eq!(expected.pid, parsed.pid);
 		assert_eq!(expected.queue_id_s, parsed.queue_id_s);
 		assert_eq!(expected.queue_id_e, parsed.queue_id_e);
 		assert_eq!(end, 60);
-		assert_eq!(fmt::format(format_args!("{:?}", parsed)), "Inner { raw: \"Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B:\", host_e: 21, queue_s: 22, queue_e: 32, process_s: 33, process_e: 40, pid: 31247, queue_id_s: 49, queue_id_e: 59 }");
+		assert_eq!(fmt::format(format_args!("{:?}", parsed)), "Inner { raw: \"Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B:\", host_e: 21, queue_s: 22, queue_e: 32, process: Cleanup, pid: 31247, queue_id_s: 49, queue_id_e: 59 }");
 	}
 
 	#[test]
