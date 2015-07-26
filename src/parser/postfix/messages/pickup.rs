@@ -22,12 +22,7 @@ impl Pickup {
 	pub fn from <'a>(&'a self) -> &'a str {
 		&self.raw[self.from_s..self.from_e]
 	}
-	pub fn parse(config: ParserConfig, s: String) -> Result<Option<Pickup>, ParseError> {
-		let (inner, start) = match Inner::parse(config, s) {
-			Err(x) => return Err(x),
-			Ok(None) => return Ok(None),
-			Ok(Some((x,y))) => (x,y)
-		};
+	pub fn parse(inner: Inner, start: usize) -> Result<Option<Pickup>, ParseError> {
 		let (uid, from_s, from_e) = {
 			let rest = &inner.raw[start..];
 			if  !rest.starts_with(" uid=") {
@@ -62,32 +57,18 @@ impl Pickup {
 mod tests {
 	use std::fmt;
 	use super::*;
+	use super::super::inner::Inner;
 	use super::super::super::config::ParserConfig;
 	use super::super::super::errors::ParseError;
 
 	fn parse_pickup(s: String) -> Result<Option<Pickup>, ParseError> {
 		let conf = ParserConfig { process_noise: vec!["clamsmtpd".to_string()] };
-		Pickup::parse(conf, s)
-	}
-
-	#[test]
-	fn parse_invalid_inner() {
-		let s = "Sep  3 00:00:03 yuuai postfix/pickup[12797]: 12C172090B".to_string();
-		let _ = match parse_pickup(s) {
-			Err(ParseError::NonEndingQueueID) => (),
-			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
-			_ => panic!("This should have failed")
+		let (inner, start) = match Inner::parse(conf, s) {
+			Err(x) => panic!("Parser Error: {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some((x,y))) => (x,y)
 		};
-	}
-
-	#[test]
-	fn parse_ignore_inner () {
-		let s = "Sep  3 00:00:03 yuuai clamsmtpd:".to_string();
-		let _ = match parse_pickup(s) {
-			Ok(None) => (),
-			Err(x) => panic!("Wrong Error (Should have been ignored): {}", x),
-			_ => panic!("Should have been ignored")
-		};
+		Pickup::parse(inner, start)
 	}
 
 	#[test]
