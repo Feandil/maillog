@@ -37,8 +37,12 @@ impl Inner {
 		&self.raw[self.queue_s..self.queue_e]
 	}
 
-	pub fn queue_id<'a>(&'a self) -> &'a str {
-		&self.raw[self.queue_id_s..self.queue_id_e]
+	pub fn queue_id<'a>(&'a self) -> Option<&'a str> {
+		if self.queue_id_e != 0 {
+			Some(&self.raw[self.queue_id_s..self.queue_id_e])
+		} else {
+			None
+		}
 	}
 
 	pub fn parse(config: &ParserConfig, s: String) -> Result<Option<(Inner, usize)>, ParseError> {
@@ -91,15 +95,19 @@ impl Inner {
 			};
 			let queue_id_s = process_end + 1 + pid_e + 3;
 			let rest = &rest[pid_e + 3..];
-			let len = match rest.find(':') {
-				None => return Err(ParseError::NonEndingQueueID),
-				Some(pos) => pos
+			let queue_id_e = match rest.find(':') {
+				None => 0,
+				Some(pos) => {
+					let len = pos;
+					if rest[..len].bytes().any(|b| ('0' as u8 > b || b > '9' as u8) && ('A' as u8 > b || b > 'F' as u8)) {
+						0
+					} else {
+						queue_id_s + len
+					}
+				}
 			};
-			if rest[..len].bytes().any(|b| ('0' as u8 > b || b > '9' as u8) && ('A' as u8 > b || b > 'F' as u8)) {
-				return Err(ParseError::NonEndingQueueID);
-			}
 			(host_e, queue_s, queue_e, process, pid,
-			 queue_id_s, queue_id_s + len)
+			 queue_id_s, queue_id_e)
 		};
 		Ok(Some((Inner {raw: s, host_e: host_e, queue_s: queue_s,
 		                queue_e: queue_e, process: process, pid: pid,
@@ -155,7 +163,10 @@ mod tests {
 	#[test]
 	fn queue_id() {
 		let i = init();
-		assert_eq!(i.queue_id(), "12C172090B");
+		match i.queue_id() {
+			None => panic!("Failed to match the queue id"),
+			Some(s) => assert_eq!(s, "12C172090B")
+		};
 	}
 
 	fn conf() -> ParserConfig {
@@ -254,17 +265,38 @@ mod tests {
 	}
 
 	#[test]
-	fn non_ending_queue_id(){
-		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: ".to_string()) {
-			Err(ParseError::NonEndingQueueID) => (),
-			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
-			_ => panic!("Should have failed")
-		}
-		match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090B".to_string()) {
-			Err(ParseError::NonEndingQueueID) => (),
-			Err(x) => panic!("Wrong Error (should have been NonEndingQueueID): {}", x),
-			_ => panic!("Should have failed")
-		}
+	fn no_queue_id(){
+		let (inner, _) = match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: ".to_string()) {
+			Err(x) => panic!("Failed to parse: {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some(inner)) => inner
+		};
+		match inner.queue_id() {
+			None => (),
+			Some(s) => panic!("Found inexistant queue ID: {}", s)
+		};
+		let (inner, _) = match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: NOQUEUE:".to_string()) {
+			Err(x) => panic!("Failed to parse: {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some(inner)) => inner
+		};
+		match inner.queue_id() {
+			None => (),
+			Some(s) => panic!("Found inexistant queue ID: {}", s)
+		};
+	}
+
+	#[test]
+	fn malformed_queue_id(){
+		let inner = match Inner::parse(&conf(), "Sep  3 00:00:03 yuuai postfix-in/cleanup[31247]: 12C172090BZ:".to_string()) {
+			Err(x) => panic!("Failed to parse: {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some((inner,_))) => inner
+		};
+		match inner.queue_id() {
+			None => (),
+			Some(s) => panic!("Found inexistant queue ID: {}", s)
+		};
 	}
 
 	#[test]
