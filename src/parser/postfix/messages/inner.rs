@@ -10,6 +10,7 @@ pub enum Process {
 	Pickup,
 	Pipe,
 	Smtp,
+	Smtpd,
 }
 
 #[derive(Debug)]
@@ -81,6 +82,8 @@ impl Inner {
 				"pickup" => Process::Pickup,
 				"pipe" => Process::Pipe,
 				"smtp" => Process::Smtp,
+				"smtpd" => Process::Smtpd,
+				"smtpd.local" => Process::Smtpd,
 				_ => return Err(ParseError::UnknownProcess),
 			};
 			let rest = &rest[process_len+1..];

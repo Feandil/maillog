@@ -21,7 +21,10 @@ pub enum ParseError {
 	ForwardBadDSN,
 	PickupDSNNotInt,
 	ForwardDSNBadLen,
-	ForwardNoStatus
+	ForwardNoStatus,
+	SmtpdBadOrigQueue,
+	SmtpdNonEndingOrigQueue,
+	SmtpdNoOrigClient,
 }
 
 impl fmt::Display for ParseError {
@@ -47,7 +50,10 @@ impl fmt::Display for ParseError {
 			&ParseError::ForwardBadDSN => "Forward non ending DSN",
 			&ParseError::PickupDSNNotInt => "Forward DSN containing non u8",
 			&ParseError::ForwardDSNBadLen => "Forward DSN not containing 3 u8",
-			&ParseError::ForwardNoStatus => "Forward no Status"
+			&ParseError::ForwardNoStatus => "Forward no Status",
+			&ParseError::SmtpdBadOrigQueue => "Smtpd with comma but no origin queue ID",
+			&ParseError::SmtpdNonEndingOrigQueue => "Smtpd with origin queue ID but nothing else",
+			&ParseError::SmtpdNoOrigClient => "Smtpd with origin queue ID but no origin client",
 		};
 		write!(fmt, "{}", error)
 	}

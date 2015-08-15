@@ -29,6 +29,11 @@ pub fn parse_line(raw: String, conf: &ParserConfig) -> Result<Option<Message>, P
 			Ok(None) => Ok(None),
 			Ok(Some(m)) => Ok(Some(Message::Forward { m:m }))
 		},
+		Process::Smtpd => match Smtpd::parse(inner, start) {
+			Err(error) => Err(error),
+			Ok(None) => Ok(None),
+			Ok(Some(m)) => Ok(Some(Message::Smtpd { m:m }))
+		},
 		s => panic!("Unsupported process: {:?}", s)
 	}
 }
