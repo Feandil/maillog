@@ -9,6 +9,7 @@ pub enum Process {
 	Local,
 	Pickup,
 	Pipe,
+	Qmgr,
 	Smtp,
 	Smtpd,
 }
@@ -81,6 +82,7 @@ impl Inner {
 				"local" => Process::Local,
 				"pickup" => Process::Pickup,
 				"pipe" => Process::Pipe,
+				"qmgr" => Process::Qmgr,
 				"smtp" => Process::Smtp,
 				"smtpd" => Process::Smtpd,
 				"smtpd.local" => Process::Smtpd,

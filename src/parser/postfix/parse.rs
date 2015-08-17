@@ -39,6 +39,11 @@ pub fn parse_line(raw: String, conf: &ParserConfig) -> Result<Option<Message>, P
 			Ok(None) => Ok(None),
 			Ok(Some(m)) => Ok(Some(Message::Cleanup { m:m }))
 		},
+		Process::Qmgr => match Qmgr::parse(inner, start) {
+			Err(error) => Err(error),
+			Ok(None) => Ok(None),
+			Ok(Some(m)) => Ok(Some(Message::Qmgr { m:m }))
+		},
 	}
 }
 

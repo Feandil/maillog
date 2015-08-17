@@ -26,6 +26,15 @@ pub enum ParseError {
 	SmtpdNonEndingOrigQueue,
 	SmtpdNoOrigClient,
 	CleanupNoMessageID,
+	QmgrNoFrom,
+	QmgrBadFrom,
+	QmgrNoSize,
+	QmgrBadSize,
+	QmgrSizeNotInt,
+	QmgrNoNrcpt,
+	QmgrBadNrcpt,
+	QmgrNotActive,
+	QmgrNrcptNotInt,
 }
 
 impl fmt::Display for ParseError {
@@ -56,6 +65,15 @@ impl fmt::Display for ParseError {
 			&ParseError::SmtpdNonEndingOrigQueue => "Smtpd with origin queue ID but nothing else",
 			&ParseError::SmtpdNoOrigClient => "Smtpd with origin queue ID but no origin client",
 			&ParseError::CleanupNoMessageID => "Cleanup without any message id",
+			&ParseError::QmgrNoFrom => "Qmgr no from",
+			&ParseError::QmgrBadFrom => "Qmgr non ending from",
+			&ParseError::QmgrNoSize => "Qmgr no size",
+			&ParseError::QmgrBadSize => "Qmgr non ending size",
+			&ParseError::QmgrSizeNotInt => "Qmgr size is not an int",
+			&ParseError::QmgrNoNrcpt => "Qmgr no nrcpt",
+			&ParseError::QmgrBadNrcpt => "Qmgr non ending nrcpt",
+			&ParseError::QmgrNotActive => "Qmgr not in active queue",
+			&ParseError::QmgrNrcptNotInt => "Qmgr nrcpt is not and int",
 		};
 		write!(fmt, "{}", error)
 	}
@@ -101,6 +119,14 @@ mod tests {
 		assert_print_eq(ParseError::ForwardDSNBadLen, "Forward DSN not containing 3 u8");
 		assert_print_eq(ParseError::ForwardNoStatus, "Forward no Status");
 		assert_print_eq(ParseError::CleanupNoMessageID, "Cleanup without any message id");
-
-	}
+		assert_print_eq(ParseError::QmgrNoFrom, "Qmgr no from");
+		assert_print_eq(ParseError::QmgrBadFrom, "Qmgr non ending from");
+		assert_print_eq(ParseError::QmgrNoSize, "Qmgr no size");
+		assert_print_eq(ParseError::QmgrBadSize, "Qmgr non ending size");
+		assert_print_eq(ParseError::QmgrSizeNotInt, "Qmgr size is not an int");
+		assert_print_eq(ParseError::QmgrNoNrcpt, "Qmgr no nrcpt");
+		assert_print_eq(ParseError::QmgrBadNrcpt, "Qmgr non ending nrcpt");
+		assert_print_eq(ParseError::QmgrNotActive, "Qmgr not in active queue");
+		assert_print_eq(ParseError::QmgrNrcptNotInt, "Qmgr nrcpt is not and int");
+	}	
 }
