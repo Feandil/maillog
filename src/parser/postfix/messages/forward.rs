@@ -56,6 +56,10 @@ impl Forward {
 
 	pub fn parse(inner: Inner, start: usize) -> Result<Option<Forward>, ParseError> {
 		let (to_s, to_e, orig_to_s, orig_to_e, relay_s, relay_e, dsn, status_s, status_e, child_queue_id_s, child_queue_id_e) = {
+			match inner.queue_id() {
+				None => return Ok(None),
+				Some(_) => ()
+			};
 			let rest = &inner.raw[start..];
 			let (rest, start, to_s, to_e) = {
 				if !rest.starts_with(" to=<") {
