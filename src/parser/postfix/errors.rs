@@ -25,6 +25,7 @@ pub enum ParseError {
 	SmtpdBadOrigQueue,
 	SmtpdNonEndingOrigQueue,
 	SmtpdNoOrigClient,
+	CleanupNoMessageID,
 }
 
 impl fmt::Display for ParseError {
@@ -54,6 +55,7 @@ impl fmt::Display for ParseError {
 			&ParseError::SmtpdBadOrigQueue => "Smtpd with comma but no origin queue ID",
 			&ParseError::SmtpdNonEndingOrigQueue => "Smtpd with origin queue ID but nothing else",
 			&ParseError::SmtpdNoOrigClient => "Smtpd with origin queue ID but no origin client",
+			&ParseError::CleanupNoMessageID => "Cleanup without any message id",
 		};
 		write!(fmt, "{}", error)
 	}
@@ -98,5 +100,7 @@ mod tests {
 		assert_print_eq(ParseError::PickupDSNNotInt, "Forward DSN containing non u8");
 		assert_print_eq(ParseError::ForwardDSNBadLen, "Forward DSN not containing 3 u8");
 		assert_print_eq(ParseError::ForwardNoStatus, "Forward no Status");
+		assert_print_eq(ParseError::CleanupNoMessageID, "Cleanup without any message id");
+
 	}
 }
