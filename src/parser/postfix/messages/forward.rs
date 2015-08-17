@@ -287,6 +287,15 @@ mod tests {
 	}
 
 	#[test]
+	fn no_queue_id() {
+		match parse_forward("Jul 25 00:00:01 yuuai postfix/smtp[8311]: connect to gmail-smtp-in.l.google.com[2a00:1450:400c:c02::1a]:25: Network is unreachable".to_string()) {
+			Err(x) => panic!("Parser Error: {}", x),
+			Ok(None) => (),
+			Ok(Some(_)) => panic!("This should have been ignored")
+		}
+	}
+
+	#[test]
 	fn valid() {
 		let s = "Jul 25 00:00:01 yuuai postfix/smtp[3703]: 0345620AE4: to=<xxxx@melix.net>, orig_to=<yyy@melix.net>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.57, delays=0.4/0/0.04/0.13, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 60F6120AF9)".to_string();
 		let forward = match parse_forward(s) {
