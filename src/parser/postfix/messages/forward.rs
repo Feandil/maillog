@@ -243,6 +243,15 @@ mod tests {
 	}
 
 	#[test]
+	fn broken_conn_use() {
+		match parse_forward("Jul 25 00:00:01 yuuai postfix/smtp[3703]: 0345620AE4: to=<>, orig_to=<>, relay=, conn_use=2".to_string()) {
+			Err(ParseError::ForwardBadConn) => (),
+			Err(x) => panic!("Wrong Error (should have been ForwardBadConn): {}", x),
+			_ => panic!("Should have failed")
+		}
+	}
+
+	#[test]
 	fn broken_delays() {
 		match parse_forward("Jul 25 00:00:01 yuuai postfix/smtp[3703]: 0345620AE4: to=<>, orig_to=<>, relay=,".to_string()) {
 			Err(ParseError::ForwardNoDelay) => (),
@@ -310,7 +319,7 @@ mod tests {
 
 	#[test]
 	fn valid() {
-		let s = "Jul 25 00:00:01 yuuai postfix/smtp[3703]: 0345620AE4: to=<xxxx@melix.net>, orig_to=<yyy@melix.net>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.57, delays=0.4/0/0.04/0.13, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 60F6120AF9)".to_string();
+		let s = "Jul 25 00:00:01 yuuai postfix/smtp[3703]: 0345620AE4: to=<xxxx@melix.net>, orig_to=<yyy@melix.net>, relay=127.0.0.1[127.0.0.1]:10024, conn_use=2, delay=0.57, delays=0.4/0/0.04/0.13, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 60F6120AF9)".to_string();
 		let forward = match parse_forward(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
@@ -323,7 +332,7 @@ mod tests {
 		assert_eq!(forward.dsn, [2, 0, 0]);
 		assert_eq!(forward.status(), "sent (250 2.0.0 Ok: queued as 60F6120AF9)");
 		assert_eq!(forward.child_queue(), Some("60F6120AF9"));
-		assert_eq!(fmt::format(format_args!("{:?}", forward)), "Forward { inner: Inner { raw: \"Jul 25 00:00:01 yuuai postfix/smtp[3703]: 0345620AE4: to=<xxxx@melix.net>, orig_to=<yyy@melix.net>, relay=127.0.0.1[127.0.0.1]:10024, delay=0.57, delays=0.4/0/0.04/0.13, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 60F6120AF9)\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtp, pid: 3703, queue_id_s: 42, queue_id_e: 52 }, to_s: 58, to_e: 72, orig_to_s: 84, orig_to_e: 97, relay_s: 116, relay_e: 125, dsn: [2, 0, 0], status_s: 188, status_e: 229, child_queue_id_s: 218, child_queue_id_e: 228 }");
+		assert_eq!(fmt::format(format_args!("{:?}", forward)), "Forward { inner: Inner { raw: \"Jul 25 00:00:01 yuuai postfix/smtp[3703]: 0345620AE4: to=<xxxx@melix.net>, orig_to=<yyy@melix.net>, relay=127.0.0.1[127.0.0.1]:10024, conn_use=2, delay=0.57, delays=0.4/0/0.04/0.13, dsn=2.0.0, status=sent (250 2.0.0 Ok: queued as 60F6120AF9)\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtp, pid: 3703, queue_id_s: 42, queue_id_e: 52 }, to_s: 58, to_e: 72, orig_to_s: 84, orig_to_e: 97, relay_s: 116, relay_e: 125, dsn: [2, 0, 0], status_s: 200, status_e: 241, child_queue_id_s: 230, child_queue_id_e: 240 }");
 		let s = "Jul 25 00:00:01 yuuai postfix/smtp[3703]: 0345620AE4: to=<xxxx@melix.net>, relay=bogofilter, delay=0.57, delays=0.4/0/0.04/0.13, dsn=2.0.0, status=sent (delivered via bogofilter service)".to_string();
 		let forward = match parse_forward(s) {
 			Err(x) => panic!("Parser Error: {}", x),
