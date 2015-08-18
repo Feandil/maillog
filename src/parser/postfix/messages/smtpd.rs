@@ -163,13 +163,13 @@ mod tests {
 		match parse_smtpd(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => (),
-			Ok(x) => panic!("This should have been ignored ({})", fmt::format(format_args!("{:?}", x)))
+			Ok(x) => panic!("This should have been ignored ({:?})", x)
 		};
 		let s = "Aug  4 00:00:12 ozgurluk postfix/smtpd[25688]: warning: hostname pei-190-128-lxiii-xxx.une.net.co does not resolve to address 190.128.63.30: Name or service not known".to_string();
 		match parse_smtpd(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => (),
-			Ok(x) => panic!("This should have been ignored ({})", fmt::format(format_args!("{:?}", x)))
+			Ok(x) => panic!("This should have been ignored ({:?})", x)
 		};
 	}
 
