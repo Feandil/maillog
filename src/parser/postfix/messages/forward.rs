@@ -111,11 +111,18 @@ impl Forward {
 					(&rest[len..], start + len, start, start + len)
 				}
 			};
-			let pos = match rest[1..].find(',') {
-				None => return Err(ParseError::ForwardNoDelay),
-				Some(p) => 1 + p
+			let mut pos = 0;
+			if rest.starts_with(", conn_use=") {
+				pos = match rest[1..].find(',') {
+					None => return Err(ParseError::ForwardBadConn),
+					Some(p) => 1 + p
+				};
 			};
-			let pos = match rest[pos+1..].find(',') {
+			pos = match rest[1..].find(',') {
+				None => return Err(ParseError::ForwardNoDelay),
+				Some(p) => pos + 1 + p
+			};
+			pos = match rest[pos+1..].find(',') {
 				None => return Err(ParseError::ForwardNoDelays),
 				Some(p) => pos + 1 + p
 			};

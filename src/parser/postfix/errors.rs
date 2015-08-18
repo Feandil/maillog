@@ -15,6 +15,7 @@ pub enum ParseError {
 	ForwardBadOrigTo,
 	ForwardNoRelay,
 	ForwardBadRelay,
+	ForwardBadConn,
 	ForwardNoDelays,
 	ForwardNoDelay,
 	ForwardNoDSN,
@@ -54,6 +55,7 @@ impl fmt::Display for ParseError {
 			&ParseError::ForwardBadOrigTo => "Forward non ending Orig_to",
 			&ParseError::ForwardNoRelay => "Forward no Relay",
 			&ParseError::ForwardBadRelay => "Forward non ending Relay",
+			&ParseError::ForwardBadConn => "Forward non ending Conn_use",
 			&ParseError::ForwardNoDelays => "Forward no Delays",
 			&ParseError::ForwardNoDelay => "Forward no Delay",
 			&ParseError::ForwardNoDSN => "Forward no DSN",
@@ -111,6 +113,7 @@ mod tests {
 		assert_print_eq(ParseError::ForwardBadOrigTo, "Forward non ending Orig_to");
 		assert_print_eq(ParseError::ForwardNoRelay, "Forward no Relay");
 		assert_print_eq(ParseError::ForwardBadRelay, "Forward non ending Relay");
+		assert_print_eq(ParseError::ForwardBadConn, "Forward non ending Conn_use");
 		assert_print_eq(ParseError::ForwardNoDelays, "Forward no Delays");
 		assert_print_eq(ParseError::ForwardNoDelay, "Forward no Delay");
 		assert_print_eq(ParseError::ForwardNoDSN, "Forward no DSN");
