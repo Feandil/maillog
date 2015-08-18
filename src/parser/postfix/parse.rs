@@ -9,41 +9,13 @@ pub fn parse_line(raw: String, conf: &ParserConfig) -> Result<Option<Message>, P
 		Ok(Some((x,y))) => (x,y)
 	};
 	match inner.process {
-		Process::Pickup => match Pickup::parse(inner, start) {
-			Err(error) => Err(error),
-			Ok(None) => Ok(None),
-			Ok(Some(m)) => Ok(Some(Message::Pickup { m:m }))
-		},
-		Process::Pipe => match Forward::parse(inner, start) {
-			Err(error) => Err(error),
-			Ok(None) => Ok(None),
-			Ok(Some(m)) => Ok(Some(Message::Forward { m:m }))
-		},
-		Process::Smtp => match Forward::parse(inner, start) {
-			Err(error) => Err(error),
-			Ok(None) => Ok(None),
-			Ok(Some(m)) => Ok(Some(Message::Forward { m:m }))
-		},
-		Process::Local => match Forward::parse(inner, start) {
-			Err(error) => Err(error),
-			Ok(None) => Ok(None),
-			Ok(Some(m)) => Ok(Some(Message::Forward { m:m }))
-		},
-		Process::Smtpd => match Smtpd::parse(inner, start) {
-			Err(error) => Err(error),
-			Ok(None) => Ok(None),
-			Ok(Some(m)) => Ok(Some(Message::Smtpd { m:m }))
-		},
-		Process::Cleanup => match Cleanup::parse(inner, start) {
-			Err(error) => Err(error),
-			Ok(None) => Ok(None),
-			Ok(Some(m)) => Ok(Some(Message::Cleanup { m:m }))
-		},
-		Process::Qmgr => match Qmgr::parse(inner, start) {
-			Err(error) => Err(error),
-			Ok(None) => Ok(None),
-			Ok(Some(m)) => Ok(Some(Message::Qmgr { m:m }))
-		},
+		Process::Pickup => Pickup::parse(inner, start),
+		Process::Pipe => Forward::parse(inner, start),
+		Process::Smtp => Forward::parse(inner, start),
+		Process::Local => Forward::parse(inner, start),
+		Process::Smtpd => Smtpd::parse(inner, start),
+		Process::Cleanup => Cleanup::parse(inner, start),
+		Process::Qmgr => Qmgr::parse(inner, start),
 	}
 }
 

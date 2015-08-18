@@ -1,6 +1,8 @@
 use std::ops::Deref;
 use super::super::ParseError;
 use super::Inner;
+use super::Message;
+use super::MessageParser;
 
 #[derive(Debug)]
 pub struct Forward {
@@ -53,8 +55,10 @@ impl Forward {
 			_ => Some(&self.raw[self.child_queue_id_s..self.child_queue_id_e])
 		}
 	}
+}
 
-	pub fn parse(inner: Inner, start: usize) -> Result<Option<Forward>, ParseError> {
+impl MessageParser for Forward {
+	fn parse(inner: Inner, start: usize) -> Result<Option<Message>, ParseError> {
 		let (to_s, to_e, orig_to_s, orig_to_e, relay_s, relay_e, dsn, status_s, status_e, child_queue_id_s, child_queue_id_e) = {
 			match inner.queue_id() {
 				None => return Ok(None),
@@ -166,8 +170,8 @@ impl Forward {
 			};
 			(to_s, to_e, orig_to_s, orig_to_e, relay_s, relay_e, dsn, status_s, status_e, child_queue_id_s, child_queue_id_e)
 		};
-		Ok(Some(Forward {inner: inner, to_s:to_s, to_e:to_e, orig_to_s:orig_to_s, orig_to_e:orig_to_e, relay_s:relay_s, relay_e:relay_e, dsn:dsn, status_s:status_s, status_e:status_e, 
-child_queue_id_s:child_queue_id_s, child_queue_id_e:child_queue_id_e}))
+		Ok(Some(Message::Forward { m: Forward { inner: inner, to_s:to_s, to_e:to_e, orig_to_s:orig_to_s, orig_to_e:orig_to_e, relay_s:relay_s, relay_e:relay_e, dsn:dsn, status_s:status_s, status_e:status_e, 
+child_queue_id_s:child_queue_id_s, child_queue_id_e:child_queue_id_e } }))
 	}
 }
 
@@ -176,10 +180,12 @@ mod tests {
 	use std::fmt;
 	use super::*;
 	use super::super::Inner;
+	use super::super::Message;
+	use super::super::MessageParser;
 	use super::super::super::ParserConfig;
 	use super::super::super::ParseError;
 
-	fn parse_forward(s: String) -> Result<Option<Forward>, ParseError> {
+	fn parse_forward(s: String) -> Result<Option<Message>, ParseError> {
 		let conf = ParserConfig { process_noise: vec!["clamsmtpd".to_string()] };
 		let (inner, start) = match Inner::parse(&conf, s) {
 			Err(x) => panic!("Parser Error: {}", x),
@@ -308,7 +314,8 @@ mod tests {
 		let forward = match parse_forward(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::Forward{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(forward.to(), "xxxx@melix.net");
 		assert_eq!(forward.orig_to(), Some("yyy@melix.net"));
@@ -321,7 +328,8 @@ mod tests {
 		let forward = match parse_forward(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::Forward{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(forward.to(), "xxxx@melix.net");
 		assert_eq!(forward.orig_to(), None);

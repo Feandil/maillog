@@ -1,19 +1,45 @@
 use std::ops::Deref;
 use super::super::ParseError;
 use super::Inner;
+use super::Message;
+use super::MessageParser;
 
 #[derive(Debug)]
 pub struct Qmgr {
 	inner: Inner,
-	removed: bool,
-	expired: bool,
 	from_s: usize,
 	from_e: usize,
 	size: u64,
 	nrcpt: u32,
 }
 
+#[derive(Debug)]
+pub struct QmgrRemoved {
+	inner: Inner,
+}
+
+#[derive(Debug)]
+pub struct QmgrExpired {
+	inner: Inner,
+	from_s: usize,
+	from_e: usize,
+}
+
 impl Deref for Qmgr {
+	type Target = Inner;
+	fn deref(&self) -> &Inner {
+		&self.inner
+	}
+}
+
+impl Deref for QmgrRemoved {
+	type Target = Inner;
+	fn deref(&self) -> &Inner {
+		&self.inner
+	}
+}
+
+impl Deref for QmgrExpired {
 	type Target = Inner;
 	fn deref(&self) -> &Inner {
 		&self.inner
@@ -28,13 +54,26 @@ impl Qmgr {
 			None
 		}
 	}
-	pub fn parse(inner: Inner, start: usize) -> Result<Option<Qmgr>, ParseError> {
+}
+
+impl QmgrExpired {
+	pub fn from <'a>(&'a self) -> Option<&'a str> {
+		if self.from_e != 0 {
+			Some(&self.raw[self.from_s..self.from_e])
+		} else {
+			None
+		}
+	}
+}
+
+impl MessageParser for Qmgr {
+	fn parse(inner: Inner, start: usize) -> Result<Option<Message>, ParseError> {
 		let removed = {
 			let rest = &inner.raw[start..];
 			rest.starts_with(" removed")
 		};
 		if removed {
-			return Ok(Some(Qmgr {inner: inner, removed: true, expired: false, from_s: 0, from_e: 0, size: 0, nrcpt: 0}))
+			return Ok(Some(Message::QmgrRemoved { m: QmgrRemoved { inner: inner } }));
 		}
 		let (from_s, from_e) = {
 			let rest = &inner.raw[start..];
@@ -53,7 +92,7 @@ impl Qmgr {
 			inner.raw[from_e..].starts_with(">, status=expired, returned to sender")
 		};
 		if expired {
-			return Ok(Some(Qmgr {inner: inner, removed: false, expired: true, from_s: from_s, from_e: from_e, size: 0, nrcpt: 0}))
+			return Ok(Some(Message::QmgrExpired { m: QmgrExpired {inner: inner, from_s: from_s, from_e: from_e } }));
 		}
 		let (size, nrcpt) = {
 			let rest = &inner.raw[from_e..];
@@ -87,7 +126,7 @@ impl Qmgr {
 			};
 			(size, nrcpt)
 		};
-		Ok(Some(Qmgr {inner: inner, removed: false, expired: false, from_s: from_s, from_e: from_e, size: size, nrcpt: nrcpt}))
+		Ok(Some(Message::Qmgr { m: Qmgr {inner: inner, from_s: from_s, from_e: from_e, size: size, nrcpt: nrcpt } }))
 	}
 }
 
@@ -97,10 +136,12 @@ mod tests {
 	use std::fmt;
 	use super::*;
 	use super::super::Inner;
+	use super::super::Message;
+	use super::super::MessageParser;
 	use super::super::super::ParserConfig;
 	use super::super::super::ParseError;
 
-	fn parse_qmgr(s: String) -> Result<Option<Qmgr>, ParseError> {
+	fn parse_qmgr(s: String) -> Result<Option<Message>, ParseError> {
 		let conf = ParserConfig { process_noise: vec!["clamsmtpd".to_string()] };
 		let (inner, start) = match Inner::parse(&conf, s) {
 			Err(x) => panic!("Parser Error: {}", x),
@@ -215,17 +256,16 @@ mod tests {
 		let qmgr = match parse_qmgr(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::Qmgr{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
-		assert_eq!(qmgr.removed, false);
 		match qmgr.from() {
 			None => panic!("From not found"),
 			Some(f) => assert_eq!(f, "validation@polytechnique.org")
 		};
-		assert_eq!(qmgr.expired, false);
 		assert_eq!(qmgr.size, 665);
 		assert_eq!(qmgr.nrcpt, 1);
-		assert_eq!(fmt::format(format_args!("{:?}", qmgr)), "Qmgr { inner: Inner { raw: \"Jul 25 00:00:01 svoboda postfix/qmgr[32099]: 77A8F1409B022: from=<validation@polytechnique.org>, size=665, nrcpt=1 (queue active)\", host_e: 23, queue_s: 24, queue_e: 31, process: Qmgr, pid: 32099, queue_id_s: 45, queue_id_e: 58 }, removed: false, expired: false, from_s: 66, from_e: 94, size: 665, nrcpt: 1 }");
+		assert_eq!(fmt::format(format_args!("{:?}", qmgr)), "Qmgr { inner: Inner { raw: \"Jul 25 00:00:01 svoboda postfix/qmgr[32099]: 77A8F1409B022: from=<validation@polytechnique.org>, size=665, nrcpt=1 (queue active)\", host_e: 23, queue_s: 24, queue_e: 31, process: Qmgr, pid: 32099, queue_id_s: 45, queue_id_e: 58 }, from_s: 66, from_e: 94, size: 665, nrcpt: 1 }");
 	}
 
 	#[test]
@@ -234,17 +274,10 @@ mod tests {
 		let qmgr = match parse_qmgr(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::QmgrRemoved{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
-		assert_eq!(qmgr.removed, true);
-		match qmgr.from() {
-			None => (),
-			Some(f) => panic!("Inexistant from found: {}", f)
-		};
-		assert_eq!(qmgr.expired, false);
-		assert_eq!(qmgr.size, 0);
-		assert_eq!(qmgr.nrcpt, 0);
-		assert_eq!(fmt::format(format_args!("{:?}", qmgr)), "Qmgr { inner: Inner { raw: \"Jul 25 00:00:03 svoboda postfix/qmgr[32099]: 77A8F1409B022: removed\", host_e: 23, queue_s: 24, queue_e: 31, process: Qmgr, pid: 32099, queue_id_s: 45, queue_id_e: 58 }, removed: true, expired: false, from_s: 0, from_e: 0, size: 0, nrcpt: 0 }");
+		assert_eq!(fmt::format(format_args!("{:?}", qmgr)), "QmgrRemoved { inner: Inner { raw: \"Jul 25 00:00:03 svoboda postfix/qmgr[32099]: 77A8F1409B022: removed\", host_e: 23, queue_s: 24, queue_e: 31, process: Qmgr, pid: 32099, queue_id_s: 45, queue_id_e: 58 } }");
 	}
 
 	#[test]
@@ -253,16 +286,13 @@ mod tests {
 		let qmgr = match parse_qmgr(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::QmgrExpired{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
-		assert_eq!(qmgr.removed, false);
 		match qmgr.from() {
 			None => panic!("From not found"),
 			Some(f) => assert_eq!(f, "")
 		};
-		assert_eq!(qmgr.expired, true);
-		assert_eq!(qmgr.size, 0);
-		assert_eq!(qmgr.nrcpt, 0);
-		assert_eq!(fmt::format(format_args!("{:?}", qmgr)), "Qmgr { inner: Inner { raw: \"Jul 25 00:08:51 yuuai postfix/qmgr[4146]: BB3B220B19: from=<>, status=expired, returned to sender\", host_e: 21, queue_s: 22, queue_e: 29, process: Qmgr, pid: 4146, queue_id_s: 42, queue_id_e: 52 }, removed: false, expired: true, from_s: 60, from_e: 60, size: 0, nrcpt: 0 }");
+		assert_eq!(fmt::format(format_args!("{:?}", qmgr)), "QmgrExpired { inner: Inner { raw: \"Jul 25 00:08:51 yuuai postfix/qmgr[4146]: BB3B220B19: from=<>, status=expired, returned to sender\", host_e: 21, queue_s: 22, queue_e: 29, process: Qmgr, pid: 4146, queue_id_s: 42, queue_id_e: 52 }, from_s: 60, from_e: 60 }");
 	}
 }

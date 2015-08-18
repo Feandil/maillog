@@ -1,6 +1,8 @@
 use std::ops::Deref;
 use super::super::ParseError;
 use super::Inner;
+use super::Message;
+use super::MessageParser;
 
 #[derive(Debug)]
 pub struct Cleanup {
@@ -20,7 +22,10 @@ impl Cleanup {
 	pub fn message_id <'a>(&'a self) -> &'a str {
 		&self.raw[self.message_id_s..self.message_id_e]
 	}
-	pub fn parse(inner: Inner, start: usize) -> Result<Option<Cleanup>, ParseError> {
+
+}
+impl MessageParser for Cleanup {
+	fn parse(inner: Inner, start: usize) -> Result<Option<Message>, ParseError> {
 		let (message_id_s, message_id_e) = {
 			let rest = &inner.raw[start..];
 			if  !rest.starts_with(" message-id=") {
@@ -43,7 +48,7 @@ impl Cleanup {
 			}
 			(message_id_s, message_id_e)
 		};
-		Ok(Some(Cleanup {inner: inner, message_id_s: message_id_s, message_id_e:message_id_e}))
+		Ok(Some(Message::Cleanup { m: Cleanup { inner: inner, message_id_s: message_id_s, message_id_e:message_id_e } }))
 	}
 }
 
@@ -53,10 +58,12 @@ mod tests {
 	use std::fmt;
 	use super::*;
 	use super::super::Inner;
+	use super::super::Message;
+	use super::super::MessageParser;
 	use super::super::super::ParserConfig;
 	use super::super::super::ParseError;
 
-	fn parse_cleanup(s: String) -> Result<Option<Cleanup>, ParseError> {
+	fn parse_cleanup(s: String) -> Result<Option<Message>, ParseError> {
 		let conf = ParserConfig { process_noise: vec!["clamsmtpd".to_string()] };
 		let (inner, start) = match Inner::parse(&conf, s) {
 			Err(x) => panic!("Parser Error: {}", x),
@@ -83,21 +90,24 @@ mod tests {
 		let cleanup = match parse_cleanup(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::Cleanup{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(cleanup.message_id(), "20150803220001.5E2AA52093C@mail2.les-moocs-gmf.fr");
 		let s = "Aug  4 00:00:01 yuuai postfix-in/cleanup[22502]: A071220883: message-id=20150803220001.5E2AA52093C@mail2.les-moocs-gmf.fr".to_string();
 		let cleanup = match parse_cleanup(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::Cleanup{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(cleanup.message_id(), "20150803220001.5E2AA52093C@mail2.les-moocs-gmf.fr");
 		let s = "Aug  4 00:00:01 yuuai postfix-in/cleanup[22502]: A071220883: message-id=<20150803220001.5E2AA52093C@mail2.les-moocs-gmf.fr>".to_string();
 		let cleanup = match parse_cleanup(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::Cleanup{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(cleanup.message_id(), "20150803220001.5E2AA52093C@mail2.les-moocs-gmf.fr");
 		assert_eq!(fmt::format(format_args!("{:?}", cleanup)), "Cleanup { inner: Inner { raw: \"Aug  4 00:00:01 yuuai postfix-in/cleanup[22502]: A071220883: message-id=<20150803220001.5E2AA52093C@mail2.les-moocs-gmf.fr>\", host_e: 21, queue_s: 22, queue_e: 32, process: Cleanup, pid: 22502, queue_id_s: 49, queue_id_e: 59 }, message_id_s: 73, message_id_e: 122 }");

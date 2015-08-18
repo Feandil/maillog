@@ -1,6 +1,8 @@
 use std::ops::Deref;
 use super::super::ParseError;
 use super::Inner;
+use super::Message;
+use super::MessageParser;
 
 #[derive(Debug)]
 pub struct Pickup {
@@ -21,7 +23,10 @@ impl Pickup {
 	pub fn from <'a>(&'a self) -> &'a str {
 		&self.raw[self.from_s..self.from_e]
 	}
-	pub fn parse(inner: Inner, start: usize) -> Result<Option<Pickup>, ParseError> {
+}
+
+impl MessageParser for Pickup {
+	fn parse(inner: Inner, start: usize) -> Result<Option<Message>, ParseError> {
 		let (uid, from_s, from_e) = {
 			let rest = &inner.raw[start..];
 			if  !rest.starts_with(" uid=") {
@@ -48,7 +53,7 @@ impl Pickup {
 			(uid, from_s, pos + end)
 		};
 
-		Ok(Some(Pickup {inner: inner, uid: uid, from_s: from_s, from_e: from_e}))
+		Ok(Some(Message::Pickup { m: Pickup { inner: inner, uid: uid, from_s: from_s, from_e: from_e } }))
 	}
 }
 
@@ -57,10 +62,12 @@ mod tests {
 	use std::fmt;
 	use super::*;
 	use super::super::Inner;
+	use super::super::Message;
+	use super::super::MessageParser;
 	use super::super::super::ParserConfig;
 	use super::super::super::ParseError;
 
-	fn parse_pickup(s: String) -> Result<Option<Pickup>, ParseError> {
+	fn parse_pickup(s: String) -> Result<Option<Message>, ParseError> {
 		let conf = ParserConfig { process_noise: vec!["clamsmtpd".to_string()] };
 		let (inner, start) = match Inner::parse(&conf, s) {
 			Err(x) => panic!("Parser Error: {}", x),
@@ -119,7 +126,8 @@ mod tests {
 		let pick = match parse_pickup(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::Pickup{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(pick.uid, 106);
 		assert_eq!(pick.from(), "root@example.com");
@@ -127,7 +135,8 @@ mod tests {
 		let pick = match parse_pickup(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(x)) => x
+			Ok(Some(Message::Pickup{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(pick.uid, 1024);
 		assert_eq!(pick.from(), "root@example.com");
