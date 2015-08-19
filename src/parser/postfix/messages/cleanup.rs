@@ -27,6 +27,18 @@ impl Cleanup {
 }
 impl MessageParser for Cleanup {
 	fn parse(inner: Inner, start: usize) -> Result<Option<Message>, ParseError> {
+		{
+			match inner.queue_id() {
+				Some(_) => (),
+				None => {
+					let rest = &inner.raw[start..];
+					if rest.starts_with(" warning:") {
+						return Ok(None)
+					}
+				}
+			};
+
+		}
 		let (message_id_s, message_id_e, resent) = {
 			let rest = &inner.raw[start..];
 			let (rest, message_id_s, resent) = {
@@ -77,6 +89,16 @@ mod tests {
 			Ok(Some((x,y))) => (x,y)
 		};
 		Cleanup::parse(inner, start)
+	}
+
+	#[test]
+	fn ignored() {
+		let s = "Aug  4 04:28:18 ozgurluk postfix-in/cleanup[24617]: warning: bounce: removed spurious C8A031E05FB log".to_string();
+		match parse_cleanup(s) {
+			Err(x) => panic!("Failed to parse {}", x),
+			Ok(None) => (),
+			Ok(_) => panic!("This should have been ignored"),
+		};
 	}
 
 	#[test]
