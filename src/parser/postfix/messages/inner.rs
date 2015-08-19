@@ -5,6 +5,7 @@ pub const DATE_LEN : usize = 15;
 
 #[derive(Debug, PartialEq)]
 pub enum Process {
+	Anvil,
 	Cleanup,
 	Local,
 	Pickup,
@@ -78,6 +79,7 @@ impl Inner {
 				Some(len) => len
 			};
 			let process = match &rest[..process_len] {
+				"anvil" => Process::Anvil,
 				"cleanup" => Process::Cleanup,
 				"local" => Process::Local,
 				"pickup" => Process::Pickup,

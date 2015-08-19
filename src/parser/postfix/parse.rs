@@ -9,6 +9,7 @@ pub fn parse_line(raw: String, conf: &ParserConfig) -> Result<Option<Message>, P
 		Ok(Some((x,y))) => (x,y)
 	};
 	match inner.process {
+		Process::Anvil => Ok(None),
 		Process::Pickup => Pickup::parse(inner, start),
 		Process::Pipe => Forward::parse(inner, start),
 		Process::Smtp => Forward::parse(inner, start),
