@@ -23,10 +23,11 @@ addons:
       - libelf-dev
       - libdw-dev
 
+before_cache: |
+    [ $TRAVIS_RUST_VERSION = stable ] && bash .travis.install_kcov.sh
+
 after_success: |
-    [ $TRAVIS_RUST_VERSION = stable ] &&
-    bash .travis.install_kcov.sh &&
-    $HOME/bin/kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/maillog-*
+    [ $TRAVIS_RUST_VERSION = stable ] && $HOME/bin/kcov --coveralls-id=$TRAVIS_JOB_ID --exclude-pattern=/.cargo target/kcov target/debug/maillog-*
 
 notifications:
     email: false
