@@ -109,11 +109,17 @@ impl MessageParser for Forward {
 				};
 				let rest = &rest[len..];
 				let host_e = host_s + len;
-				if !rest.starts_with(" said: ") {
-					return Err(ParseError::ForwardNoMessage);
-				}
-				let rest = &rest[7..];
-				let message_s = host_e + 7;
+				let offset = {
+					if rest.starts_with(" said: ") {
+						7
+					} else if rest.starts_with(" refused to talk to me: ") {
+						24
+					} else {
+						return Err(ParseError::ForwardNoMessage);
+					}
+				};
+				let rest = &rest[offset..];
+				let message_s = host_e + offset;
 				let message_e = message_s + rest.len();
 				(host_s, host_e, message_s, message_e)
 			} else {
@@ -410,6 +416,15 @@ mod tests {
 
 	#[test]
 	fn valid_error() {
+		let s = "Aug  4 00:10:26 svoboda postfix/smtp[1073]: 6457814091338: host mx1.free.fr[212.27.48.6] refused to talk to me: 421 Server busy, too many connections from your IP".to_string();
+		let forward = match parse_forward(s) {
+			Err(x) => panic!("Parser Error: {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some(Message::ForwardError{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
+		};
+		assert_eq!(forward.host(), "mx1.free.fr[212.27.48.6]");
+		assert_eq!(forward.message(), "421 Server busy, too many connections from your IP");
 		let s = "Aug  4 00:01:08 yuuai postfix/smtp[10627]: C217620B0B: host gmail-smtp-in.l.google.com[64.233.167.26] said: 421-4.7.0 [129.104.30.35      15] Our system has detected an unusual rate of 421-4.7.0 unsolicited mail originating from your IP address. To protect our 421-4.7.0 users from spam, mail sent from your IP address has been temporarily 421-4.7.0 rate limited. Please visit 421-4.7.0  https://support.google.com/mail/answer/81126 to review our Bulk Email 421 4.7.0 Senders Guidelines. md4si16637671wic.106 - gsmtp (in reply to end of DATA command)".to_string();
 		let forward = match parse_forward(s) {
 			Err(x) => panic!("Parser Error: {}", x),
