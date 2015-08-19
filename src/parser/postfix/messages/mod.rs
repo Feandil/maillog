@@ -16,6 +16,7 @@ pub use self::forward::Forward;
 pub use self::smtpd::Smtpd;
 pub use self::smtpd::SmtpdForward;
 pub use self::smtpd::SmtpdLogin;
+pub use self::smtpd::SmtpdBad;
 
 use super::ParseError;
 
@@ -30,6 +31,7 @@ pub enum Message {
 	Smtpd { m: Smtpd },
 	SmtpdForward { m: SmtpdForward },
 	SmtpdLogin { m: SmtpdLogin },
+	SmtpdBad { m: SmtpdBad },
 }
 
 pub trait MessageParser {
