@@ -22,6 +22,7 @@ addons:
       - libcurl4-openssl-dev
       - libelf-dev
       - libdw-dev
+      - binutils-dev
 
 before_cache: |
     [ $TRAVIS_RUST_VERSION = stable ] && bash .travis.install_kcov.sh
