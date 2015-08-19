@@ -34,7 +34,7 @@ impl Forward {
 		&self.raw[self.to_s..self.to_e]
 	}
 
-	fn orig_to<'a>(&'a self) -> Option<&'a str> {
+	pub fn orig_to<'a>(&'a self) -> Option<&'a str> {
 		match self.orig_to_e {
 			0 => None,
 			_ => Some(&self.raw[self.orig_to_s..self.orig_to_e])
@@ -49,7 +49,7 @@ impl Forward {
 		&self.raw[self.status_s..self.status_e]
 	}
 
-	fn child_queue<'a>(&'a self) -> Option<&'a str> {
+	pub fn child_queue<'a>(&'a self) -> Option<&'a str> {
 		match self.child_queue_id_e {
 			0 => None,
 			_ => Some(&self.raw[self.child_queue_id_s..self.child_queue_id_e])
