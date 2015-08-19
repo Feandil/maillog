@@ -120,29 +120,17 @@ impl Smtpd {
 }
 
 impl SmtpdForward {
-	pub fn orig_queue_id <'a>(&'a self) -> Option<&'a str> {
-		if self.orig_queue_id_e != 0 {
-			Some(&self.raw[self.orig_queue_id_s..self.orig_queue_id_e])
-		} else {
-			None
-		}
+	pub fn orig_queue_id <'a>(&'a self) -> &'a str {
+		&self.raw[self.orig_queue_id_s..self.orig_queue_id_e]
 	}
-	pub fn orig_client <'a>(&'a self) -> Option<&'a str> {
-		if self.orig_client_e != 0 {
-			Some(&self.raw[self.orig_client_s..self.orig_client_e])
-		} else {
-			None
-		}
+	pub fn orig_client <'a>(&'a self) -> &'a str {
+		&self.raw[self.orig_client_s..self.orig_client_e]
 	}
 }
 
 impl SmtpdLogin {
-	pub fn sasl_username <'a>(&'a self) -> Option<&'a str> {
-		if self.sasl_username_e != 0 {
-			Some(&self.raw[self.sasl_username_s..self.sasl_username_e])
-		} else {
-			None
-		}
+	pub fn sasl_username <'a>(&'a self) -> &'a str {
+		&self.raw[self.sasl_username_s..self.sasl_username_e]
 	}
 }
 
@@ -528,14 +516,8 @@ mod tests {
 			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(smtpd.client(), "localhost[127.0.0.1]");
-		match smtpd.orig_queue_id() {
-			None => panic!("Incorrectly parsed the orig_queue_id"),
-			Some(s) => assert_eq!(s, "67D8720887")
-		};
-		match smtpd.orig_client() {
-			None => panic!("Incorrectly parsed the orig_queue_id"),
-			Some(s) => assert_eq!(s, "3.mo52.mail-out.ovh.net[178.33.254.192]")
-		};
+		assert_eq!(smtpd.orig_queue_id(), "67D8720887");
+		assert_eq!(smtpd.orig_client(), "3.mo52.mail-out.ovh.net[178.33.254.192]");
 		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "SmtpdForward { smtpd: Smtpd { inner: Inner { raw: \"Aug  4 00:00:08 yuuai postfix/smtpd.local[20039]: 84ED020916: client=localhost[127.0.0.1], orig_queue_id=67D8720887, orig_client=3.mo52.mail-out.ovh.net[178.33.254.192]\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 20039, queue_id_s: 50, queue_id_e: 60 }, client_s: 69, client_e: 89 }, orig_queue_id_s: 105, orig_queue_id_e: 115, orig_client_s: 129, orig_client_e: 168 }");
 	}
 
@@ -562,10 +544,7 @@ mod tests {
 			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		assert_eq!(smtpd.client(), "99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]");
-		match smtpd.sasl_username() {
-			None => panic!("Failed to parse the sasl_username"),
-			Some(s) => assert_eq!(s, "firstname.lastname")
-		};
+		assert_eq!(smtpd.sasl_username(), "firstname.lastname");
 		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "SmtpdLogin { smtpd: Smtpd { inner: Inner { raw: \"Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: client=99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195], sasl_method=LOGIN, sasl_username=firstname.lastname\", host_e: 23, queue_s: 24, queue_e: 31, process: Smtpd, pid: 5884, queue_id_s: 45, queue_id_e: 58 }, client_s: 67, client_e: 127 }, sasl_username_s: 162, sasl_username_e: 180 }");
 	}
 }
