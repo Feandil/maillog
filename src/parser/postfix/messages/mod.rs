@@ -13,6 +13,7 @@ pub use self::qmgr::Qmgr;
 pub use self::qmgr::QmgrRemoved;
 pub use self::qmgr::QmgrExpired;
 pub use self::forward::Forward;
+pub use self::forward::ForwardError;
 pub use self::smtpd::Smtpd;
 pub use self::smtpd::SmtpdForward;
 pub use self::smtpd::SmtpdLogin;
@@ -28,6 +29,7 @@ pub enum Message {
 	QmgrRemoved { m: QmgrRemoved },
 	QmgrExpired { m: QmgrExpired },
         Forward { m: Forward },
+        ForwardError { m: ForwardError },
 	Smtpd { m: Smtpd },
 	SmtpdForward { m: SmtpdForward },
 	SmtpdLogin { m: SmtpdLogin },

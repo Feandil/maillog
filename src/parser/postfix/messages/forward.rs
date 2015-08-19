@@ -21,6 +21,15 @@ pub struct Forward {
 	child_queue_id_e: usize,
 }
 
+#[derive(Debug)]
+pub struct ForwardError {
+	inner: Inner,
+	host_s: usize,
+	host_e: usize,
+	message_s: usize,
+	message_e: usize,
+}
+
 impl Deref for Forward {
 	type Target = Inner;
 	fn deref(&self) -> &Inner {
@@ -28,8 +37,14 @@ impl Deref for Forward {
 	}
 }
 
-impl Forward {
+impl Deref for ForwardError {
+	type Target = Inner;
+	fn deref(&self) -> &Inner {
+		&self.inner
+	}
+}
 
+impl Forward {
 	pub fn to <'a>(&'a self) -> &'a str {
 		&self.raw[self.to_s..self.to_e]
 	}
@@ -57,13 +72,51 @@ impl Forward {
 	}
 }
 
+impl ForwardError {
+	pub fn host <'a>(&'a self) -> &'a str {
+		&self.raw[self.host_s..self.host_e]
+	}
+
+	pub fn message <'a>(&'a self) -> &'a str {
+		&self.raw[self.message_s..self.message_e]
+	}
+}
+
 impl MessageParser for Forward {
 	fn parse(inner: Inner, start: usize) -> Result<Option<Message>, ParseError> {
-		let (to_s, to_e, orig_to_s, orig_to_e, relay_s, relay_e, dsn, status_s, status_e, child_queue_id_s, child_queue_id_e) = {
+		{
 			match inner.queue_id() {
 				None => return Ok(None),
 				Some(_) => ()
 			};
+		}
+		let (host_s, host_e, message_s, message_e) = {
+			let rest = &inner.raw[start..];
+			let error = rest.starts_with(" host ");
+			if error {
+				let rest = &rest[6..];
+				let host_s = start + 6;
+				let len = match rest.find(' ') {
+					None => return Err(ParseError::ForwardBadHost),
+					Some(p) => p
+				};
+				let rest = &rest[len..];
+				let host_e = host_s + len;
+				if !rest.starts_with(" said: ") {
+					return Err(ParseError::ForwardNoMessage);
+				}
+				let rest = &rest[7..];
+				let message_s = host_e + 7;
+				let message_e = message_s + rest.len();
+				(host_s, host_e, message_s, message_e)
+			} else {
+				(0, 0, 0, 0)
+			}
+		};
+		if message_e != 0 {
+			return Ok(Some(Message::ForwardError { m: ForwardError { inner: inner, host_s:host_s, host_e:host_e, message_s:message_s, message_e: message_e } }));
+		}			
+		let (to_s, to_e, orig_to_s, orig_to_e, relay_s, relay_e, dsn, status_s, status_e, child_queue_id_s, child_queue_id_e) = {
 			let rest = &inner.raw[start..];
 			let (rest, start, to_s, to_e) = {
 				if !rest.starts_with(" to=<") {
@@ -170,8 +223,7 @@ impl MessageParser for Forward {
 			};
 			(to_s, to_e, orig_to_s, orig_to_e, relay_s, relay_e, dsn, status_s, status_e, child_queue_id_s, child_queue_id_e)
 		};
-		Ok(Some(Message::Forward { m: Forward { inner: inner, to_s:to_s, to_e:to_e, orig_to_s:orig_to_s, orig_to_e:orig_to_e, relay_s:relay_s, relay_e:relay_e, dsn:dsn, status_s:status_s, status_e:status_e, 
-child_queue_id_s:child_queue_id_s, child_queue_id_e:child_queue_id_e } }))
+		Ok(Some(Message::Forward { m: Forward { inner: inner, to_s:to_s, to_e:to_e, orig_to_s:orig_to_s, orig_to_e:orig_to_e, relay_s:relay_s, relay_e:relay_e, dsn:dsn, status_s:status_s, status_e:status_e, child_queue_id_s:child_queue_id_s, child_queue_id_e:child_queue_id_e } }))
 	}
 }
 
@@ -193,6 +245,24 @@ mod tests {
 			Ok(Some((x,y))) => (x,y)
 		};
 		Forward::parse(inner, start)
+	}
+
+	#[test]
+	fn broken_host() {
+		match parse_forward("Aug  4 00:01:08 yuuai postfix/smtp[10627]: C217620B0B: host ".to_string()) {
+			Err(ParseError::ForwardBadHost) => (),
+			Err(x) => panic!("Wrong Error (should have been ForwardBadHost): {}", x),
+			_ => panic!("Should have failed")
+		}
+	}
+
+	#[test]
+	fn no_message() {
+		match parse_forward("Aug  4 00:01:08 yuuai postfix/smtp[10627]: C217620B0B: host gmail-smtp-in.l.google.com[64.233.167.26] ".to_string()) {
+			Err(ParseError::ForwardNoMessage) => (),
+			Err(x) => panic!("Wrong Error (should have been ForwardNoMessage): {}", x),
+			_ => panic!("Should have failed")
+		}
 	}
 
 	#[test]
@@ -315,6 +385,20 @@ mod tests {
 			Ok(None) => (),
 			Ok(Some(_)) => panic!("This should have been ignored")
 		}
+	}
+
+	#[test]
+	fn valid_error() {
+		let s = "Aug  4 00:01:08 yuuai postfix/smtp[10627]: C217620B0B: host gmail-smtp-in.l.google.com[64.233.167.26] said: 421-4.7.0 [129.104.30.35      15] Our system has detected an unusual rate of 421-4.7.0 unsolicited mail originating from your IP address. To protect our 421-4.7.0 users from spam, mail sent from your IP address has been temporarily 421-4.7.0 rate limited. Please visit 421-4.7.0  https://support.google.com/mail/answer/81126 to review our Bulk Email 421 4.7.0 Senders Guidelines. md4si16637671wic.106 - gsmtp (in reply to end of DATA command)".to_string();
+		let forward = match parse_forward(s) {
+			Err(x) => panic!("Parser Error: {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some(Message::ForwardError{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
+		};
+		assert_eq!(forward.host(), "gmail-smtp-in.l.google.com[64.233.167.26]");
+		assert_eq!(forward.message(), "421-4.7.0 [129.104.30.35      15] Our system has detected an unusual rate of 421-4.7.0 unsolicited mail originating from your IP address. To protect our 421-4.7.0 users from spam, mail sent from your IP address has been temporarily 421-4.7.0 rate limited. Please visit 421-4.7.0  https://support.google.com/mail/answer/81126 to review our Bulk Email 421 4.7.0 Senders Guidelines. md4si16637671wic.106 - gsmtp (in reply to end of DATA command)");
+		assert_eq!(fmt::format(format_args!("{:?}", forward)), "ForwardError { inner: Inner { raw: \"Aug  4 00:01:08 yuuai postfix/smtp[10627]: C217620B0B: host gmail-smtp-in.l.google.com[64.233.167.26] said: 421-4.7.0 [129.104.30.35      15] Our system has detected an unusual rate of 421-4.7.0 unsolicited mail originating from your IP address. To protect our 421-4.7.0 users from spam, mail sent from your IP address has been temporarily 421-4.7.0 rate limited. Please visit 421-4.7.0  https://support.google.com/mail/answer/81126 to review our Bulk Email 421 4.7.0 Senders Guidelines. md4si16637671wic.106 - gsmtp (in reply to end of DATA command)\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtp, pid: 10627, queue_id_s: 43, queue_id_e: 53 }, host_s: 60, host_e: 101, message_s: 108, message_e: 550 }");
 	}
 
 	#[test]
