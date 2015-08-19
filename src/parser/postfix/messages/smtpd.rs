@@ -271,7 +271,7 @@ impl MessageParser for Smtpd {
 				let sasl_username_e = inner.raw.len();
 				(0, 0, 0, 0, sasl_username_s, sasl_username_e)
 			} else {
-				return Err(ParseError::SmtpdBadOrigQueue);
+				return Err(ParseError::SmtpdUnknownFormat);
 			}
 		};
 		let smtpd = Smtpd { inner:inner, client_s: client_s, client_e: client_e };
@@ -423,8 +423,8 @@ mod tests {
 	fn bad_orig_queue() {
 		let s ="Aug  4 00:00:08 yuuai postfix/smtpd.local[20039]: 84ED020916: client=localhost[127.0.0.1], orig_queue_id".to_string();
 		match parse_smtpd(s) {
-			Err(ParseError::SmtpdBadOrigQueue) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdBadOrigQueue {}", x),
+			Err(ParseError::SmtpdUnknownFormat) => (),
+			Err(x) => panic!("Wrong error, should have been SmtpdUnknownFormat {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
 			Ok(_) => panic!("This should have failed")
 		};

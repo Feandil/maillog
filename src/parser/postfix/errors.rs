@@ -27,7 +27,7 @@ pub enum ParseError {
 	PickupDSNNotInt,
 	ForwardDSNBadLen,
 	ForwardNoStatus,
-	SmtpdBadOrigQueue,
+	SmtpdUnknownFormat,
 	SmtpdNonEndingOrigQueue,
 	SmtpdNoOrigClient,
 	SmtpdBadMessage,
@@ -81,7 +81,7 @@ impl fmt::Display for ParseError {
 			&ParseError::PickupDSNNotInt => "Forward DSN containing non u8",
 			&ParseError::ForwardDSNBadLen => "Forward DSN not containing 3 u8",
 			&ParseError::ForwardNoStatus => "Forward no Status",
-			&ParseError::SmtpdBadOrigQueue => "Smtpd with comma but no origin queue ID",
+			&ParseError::SmtpdUnknownFormat => "Smtpd with comma but no know format",
 			&ParseError::SmtpdNonEndingOrigQueue => "Smtpd with origin queue ID but nothing else",
 			&ParseError::SmtpdNoOrigClient => "Smtpd with origin queue ID but no origin client",
 			&ParseError::SmtpdBadMessage => "Smtpd non ending message",
@@ -153,6 +153,7 @@ mod tests {
 		assert_print_eq(ParseError::PickupDSNNotInt, "Forward DSN containing non u8");
 		assert_print_eq(ParseError::ForwardDSNBadLen, "Forward DSN not containing 3 u8");
 		assert_print_eq(ParseError::ForwardNoStatus, "Forward no Status");
+		assert_print_eq(ParseError::SmtpdUnknownFormat, "Smtpd with comma but no know format");
 		assert_print_eq(ParseError::SmtpdBadMessage, "Smtpd non ending message");
 		assert_print_eq(ParseError::SmtpdNoFrom, "Smtpd no from");
 		assert_print_eq(ParseError::SmtpdBadFrom, "Smtpd non ending from");
