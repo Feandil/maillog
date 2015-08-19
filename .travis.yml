@@ -11,7 +11,6 @@ matrix:
 
 cache:
     directories:
-        - target
         - $HOME/bin
         - $HOME/kcov
 
