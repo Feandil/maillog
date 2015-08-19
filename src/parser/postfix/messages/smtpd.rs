@@ -21,9 +21,15 @@ pub struct SmtpdForward {
 	orig_client_e: usize,
 }
 
+pub enum SmtpdMethod {
+	Plain,
+	Login,
+}
+
 #[derive(Debug)]
 pub struct SmtpdLogin {
 	smtpd: Smtpd,
+	method: SmtpdMethod,
 	sasl_username_s: usize,
 	sasl_username_e: usize,
 }
@@ -78,6 +84,22 @@ impl Deref for SmtpdBad {
 	type Target = Inner;
 	fn deref(&self) -> &Inner {
 		&self.inner
+	}
+}
+
+impl fmt::Display for SmtpdMethod {
+	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+		let error = match self {
+			&SmtpdMethod::Login => "LOGIN",
+			&SmtpdMethod::Plain => "PLAIN",
+		};
+		write!(fmt, "{}", error)
+	}
+}
+
+impl fmt::Debug for SmtpdMethod {
+	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+		fmt::Display::fmt(self, fmt)
 	}
 }
 
@@ -250,7 +272,7 @@ impl MessageParser for Smtpd {
 		if done {
 			return Ok(Some(Message::Smtpd { m: Smtpd { inner:inner, client_s: client_s, client_e: client_e } }));
 		}
-		let (orig_queue_id_s, orig_queue_id_e, orig_client_s, orig_client_e, sasl_username_s, sasl_username_e) = {
+		let (orig_queue_id_s, orig_queue_id_e, orig_client_s, orig_client_e, sasl_username_s, sasl_username_e, method) = {
 			let rest = &inner.raw[client_e ..];
 			if rest.starts_with(", orig_queue_id=") {
 				let orig_queue_id_s = client_e + 16;
@@ -265,20 +287,34 @@ impl MessageParser for Smtpd {
 				}
 				let orig_client_s = orig_queue_id_e + 14;
 				let orig_client_e = inner.raw.len();
-				(orig_queue_id_s, orig_queue_id_e, orig_client_s, orig_client_e, 0, 0)
-			} else if rest.starts_with(", sasl_method=LOGIN, sasl_username=") {
-				let sasl_username_s = client_e + 35;
+				(orig_queue_id_s, orig_queue_id_e, orig_client_s, orig_client_e, 0, 0, None)
+			} else if rest.starts_with(", sasl_method=") {
+				let method_s = client_e + 14;
+				let rest = &rest[14..];
+				let method_len = match rest.find(',') {
+					None => return Err(ParseError::SmtpdNonEndingMethod),
+					Some(l) => l
+				};
+				let method = match &rest[..method_len] {
+					"LOGIN" => SmtpdMethod::Login,
+					"PLAIN" => SmtpdMethod::Plain,
+					_ => return Err(ParseError::SmtpdUnknownMethod)
+				};
+				let rest = &rest[method_len..];
+				if !rest.starts_with(", sasl_username=") {
+					return Err(ParseError::SmtpdNoUsername);
+				}
+				let sasl_username_s = method_s + method_len + 16;
 				let sasl_username_e = inner.raw.len();
-				(0, 0, 0, 0, sasl_username_s, sasl_username_e)
+				(0, 0, 0, 0, sasl_username_s, sasl_username_e, Some(method))
 			} else {
 				return Err(ParseError::SmtpdUnknownFormat);
 			}
 		};
 		let smtpd = Smtpd { inner:inner, client_s: client_s, client_e: client_e };
-		if orig_client_e != 0 {
-			Ok(Some(Message::SmtpdForward { m: SmtpdForward { smtpd: smtpd, orig_queue_id_s: orig_queue_id_s, orig_queue_id_e: orig_queue_id_e, orig_client_s: orig_client_s, orig_client_e:orig_client_e } }))
-		} else {
-			Ok(Some(Message::SmtpdLogin { m: SmtpdLogin { smtpd: smtpd, sasl_username_s:sasl_username_s, sasl_username_e:sasl_username_e } }))
+		match method {
+			None => Ok(Some(Message::SmtpdForward { m: SmtpdForward { smtpd: smtpd, orig_queue_id_s: orig_queue_id_s, orig_queue_id_e: orig_queue_id_e, orig_client_s: orig_client_s, orig_client_e:orig_client_e } })),
+			Some(method) => Ok(Some(Message::SmtpdLogin { m: SmtpdLogin { smtpd: smtpd, method: method, sasl_username_s:sasl_username_s, sasl_username_e:sasl_username_e } }))
 		}
 	}
 }
@@ -545,6 +581,6 @@ mod tests {
 		};
 		assert_eq!(smtpd.client(), "99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]");
 		assert_eq!(smtpd.sasl_username(), "firstname.lastname");
-		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "SmtpdLogin { smtpd: Smtpd { inner: Inner { raw: \"Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: client=99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195], sasl_method=LOGIN, sasl_username=firstname.lastname\", host_e: 23, queue_s: 24, queue_e: 31, process: Smtpd, pid: 5884, queue_id_s: 45, queue_id_e: 58 }, client_s: 67, client_e: 127 }, sasl_username_s: 162, sasl_username_e: 180 }");
+		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "SmtpdLogin { smtpd: Smtpd { inner: Inner { raw: \"Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: client=99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195], sasl_method=LOGIN, sasl_username=firstname.lastname\", host_e: 23, queue_s: 24, queue_e: 31, process: Smtpd, pid: 5884, queue_id_s: 45, queue_id_e: 58 }, client_s: 67, client_e: 127 }, method: LOGIN, sasl_username_s: 162, sasl_username_e: 180 }");
 	}
 }
