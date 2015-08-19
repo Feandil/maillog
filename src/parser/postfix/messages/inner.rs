@@ -124,10 +124,17 @@ impl Inner {
 			(host_e, queue_s, queue_e, process, pid,
 			 queue_id_s, queue_id_e)
 		};
-		Ok(Some((Inner {raw: s, host_e: host_e, queue_s: queue_s,
-		                queue_e: queue_e, process: process, pid: pid,
-		                queue_id_s:queue_id_s, queue_id_e: queue_id_e},
-		         queue_id_e + 1)))
+		if queue_id_e == 0 {
+			Ok(Some((Inner {raw: s, host_e: host_e, queue_s: queue_s,
+			                queue_e: queue_e, process: process, pid: pid,
+			                queue_id_s:0, queue_id_e: 0},
+			         queue_id_s - 1)))
+		} else {
+			Ok(Some((Inner {raw: s, host_e: host_e, queue_s: queue_s,
+			                queue_e: queue_e, process: process, pid: pid,
+			                queue_id_s: queue_id_s, queue_id_e: queue_id_e},
+			         queue_id_e + 1)))
+		}
 	}
 }
 
