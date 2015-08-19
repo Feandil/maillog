@@ -89,6 +89,13 @@ impl MessageParser for Forward {
 				None => return Ok(None),
 				Some(_) => ()
 			};
+			let rest = &inner.raw[start..];
+			if rest.starts_with(" enabling PIX workarounds: ") {
+				return Ok(None);
+			}
+			if rest.starts_with(" lost connection with") {
+				return Ok(None);
+			}
 		}
 		let (host_s, host_e, message_s, message_e) = {
 			let rest = &inner.raw[start..];
@@ -245,6 +252,20 @@ mod tests {
 			Ok(Some((x,y))) => (x,y)
 		};
 		Forward::parse(inner, start)
+	}
+
+	#[test]
+	fn ignored() {
+		match parse_forward("Aug  4 00:03:19 yuuai postfix/smtp[18086]: C5B28208A3: enabling PIX workarounds: disable_esmtp delay_dotcrlf for mrelay2.axa.com[171.18.34.18]:25".to_string()) {
+			Err(x) => panic!("Failed to parse: {}", x),
+			Ok(None) => (),
+			Ok(_) => panic!("Should have been ignored")
+		}
+		match parse_forward("Aug  4 00:04:40 svoboda postfix/smtp[337]: C06251400063D: lost connection with smtp-in.orange.fr[193.252.22.65] while receiving the initial server greeting".to_string()) {
+			Err(x) => panic!("Failed to parse: {}", x),
+			Ok(None) => (),
+			Ok(_) => panic!("Should have been ignored")
+		}
 	}
 
 	#[test]
