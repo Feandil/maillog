@@ -96,6 +96,9 @@ impl MessageParser for Forward {
 			if rest.starts_with(" lost connection with") {
 				return Ok(None);
 			}
+			if rest.starts_with(" conversation with ") {
+				return Ok(None);
+			}
 		}
 		let (host_s, host_e, message_s, message_e) = {
 			let rest = &inner.raw[start..];
