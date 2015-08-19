@@ -10,6 +10,7 @@ pub fn parse_line(raw: String, conf: &ParserConfig) -> Result<Option<Message>, P
 	};
 	match inner.process {
 		Process::Anvil => Ok(None),
+		Process::Bounce => Bounce::parse(inner, start),
 		Process::Pickup => Pickup::parse(inner, start),
 		Process::Pipe => Forward::parse(inner, start),
 		Process::Smtp => Forward::parse(inner, start),

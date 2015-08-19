@@ -1,4 +1,5 @@
 mod inner;
+mod bounce;
 mod cleanup;
 mod pickup;
 mod forward;
@@ -7,6 +8,7 @@ mod smtpd;
 
 pub use self::inner::Process;
 pub use self::inner::Inner;
+pub use self::bounce::Bounce;
 pub use self::cleanup::Cleanup;
 pub use self::pickup::Pickup;
 pub use self::qmgr::Qmgr;
@@ -23,6 +25,7 @@ use super::ParseError;
 
 #[derive(Debug)]
 pub enum Message {
+	Bounce { m: Bounce },
 	Cleanup { m: Cleanup },
         Pickup { m: Pickup },
 	Qmgr { m: Qmgr},

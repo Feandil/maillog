@@ -8,6 +8,8 @@ pub enum ParseError {
 	NonEndingProcess,
 	UnknownProcess,
 	BadProcessID,
+	BounceBad,
+	BounceBadQueueID,
 	PickupBadUID,
 	PickupBadFrom,
 	ForwardBadHost,
@@ -60,6 +62,8 @@ impl fmt::Display for ParseError {
 			&ParseError::NonEndingProcess => "Non Ending Process",
 			&ParseError::UnknownProcess => "Unknown Process name",
 			&ParseError::BadProcessID => "Bad Process ID",
+			&ParseError::BounceBad => "Bounce unknown format",
+			&ParseError::BounceBadQueueID => "Bounce child queue id illegal char",
 			&ParseError::PickupBadUID => "Pickup Bad UID",
 			&ParseError::PickupBadFrom => "Pickup Bad From",
 			&ParseError::ForwardBadHost => "Forward non ending host",
@@ -130,6 +134,8 @@ mod tests {
 		assert_print_eq(ParseError::NonEndingProcess, "Non Ending Process");
 		assert_print_eq(ParseError::UnknownProcess, "Unknown Process name");
 		assert_print_eq(ParseError::BadProcessID, "Bad Process ID");
+		assert_print_eq(ParseError::BounceBad, "Bounce unknown format");
+		assert_print_eq(ParseError::BounceBadQueueID, "Bounce child queue id illegal char");
 		assert_print_eq(ParseError::PickupBadUID, "Pickup Bad UID");
 		assert_print_eq(ParseError::PickupBadFrom, "Pickup Bad From");
 		assert_print_eq(ParseError::ForwardBadHost, "Forward non ending host");
