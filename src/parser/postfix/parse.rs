@@ -16,6 +16,7 @@ pub fn parse_line(raw: String, conf: &ParserConfig) -> Result<Option<Message>, P
 		Process::Smtp => Forward::parse(inner, start),
 		Process::Local => Forward::parse(inner, start),
 		Process::Smtpd => Smtpd::parse(inner, start),
+		Process::Scache => Ok(None),
 		Process::Cleanup => Cleanup::parse(inner, start),
 		Process::Qmgr => Qmgr::parse(inner, start),
 	}
