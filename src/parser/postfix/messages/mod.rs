@@ -4,6 +4,7 @@ mod cleanup;
 mod pickup;
 mod forward;
 mod qmgr;
+mod reject;
 mod smtpd;
 
 pub use self::inner::Process;
@@ -16,10 +17,12 @@ pub use self::qmgr::QmgrRemoved;
 pub use self::qmgr::QmgrExpired;
 pub use self::forward::Forward;
 pub use self::forward::ForwardError;
+pub use self::reject::Reject;
+pub use self::reject::RejectReason;
+pub use self::reject::RejectProto;
 pub use self::smtpd::Smtpd;
 pub use self::smtpd::SmtpdForward;
 pub use self::smtpd::SmtpdLogin;
-pub use self::smtpd::SmtpdBad;
 
 use super::ParseError;
 
@@ -33,10 +36,10 @@ pub enum Message {
 	QmgrExpired { m: QmgrExpired },
         Forward { m: Forward },
         ForwardError { m: ForwardError },
+	Reject { m: Reject },
 	Smtpd { m: Smtpd },
 	SmtpdForward { m: SmtpdForward },
 	SmtpdLogin { m: SmtpdLogin },
-	SmtpdBad { m: SmtpdBad },
 }
 
 pub trait MessageParser {

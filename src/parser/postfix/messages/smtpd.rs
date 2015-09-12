@@ -4,6 +4,8 @@ use super::super::ParseError;
 use super::Inner;
 use super::Message;
 use super::MessageParser;
+use super::Reject;
+use super::RejectReason;
 
 #[derive(Debug)]
 pub struct Smtpd {
@@ -34,32 +36,6 @@ pub struct SmtpdLogin {
 	sasl_username_e: usize,
 }
 
-pub enum SmtpdBadReason {
-	Reject,
-	Discard,
-	Warn,
-}
-
-pub enum SmtpdProto {
-	SMTP,
-	ESMTP,
-}
-
-#[derive(Debug)]
-pub struct SmtpdBad {
-	inner: Inner,
-	reason: SmtpdBadReason,
-	message_s: usize,
-	message_e: usize,
-	from_s: usize,
-	from_e: usize,
-	to_s: usize,
-	to_e: usize,
-	proto: SmtpdProto,
-	helo_s: usize,
-	helo_e: usize,
-}
-
 impl Deref for Smtpd {
 	type Target = Inner;
 	fn deref(&self) -> &Inner {
@@ -81,13 +57,6 @@ impl Deref for SmtpdLogin {
 	}
 }
 
-impl Deref for SmtpdBad {
-	type Target = Inner;
-	fn deref(&self) -> &Inner {
-		&self.inner
-	}
-}
-
 impl fmt::Display for SmtpdMethod {
 	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
 		let error = match self {
@@ -103,40 +72,6 @@ impl fmt::Debug for SmtpdMethod {
 		fmt::Display::fmt(self, fmt)
 	}
 }
-
-impl fmt::Display for SmtpdBadReason {
-	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-		let error = match self {
-			&SmtpdBadReason::Reject => "Reject",
-			&SmtpdBadReason::Discard => "Discard",
-			&SmtpdBadReason::Warn => "Warn",
-		};
-		write!(fmt, "{}", error)
-	}
-}
-
-impl fmt::Debug for SmtpdBadReason {
-	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-		fmt::Display::fmt(self, fmt)
-	}
-}
-
-impl fmt::Display for SmtpdProto {
-	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-		let error = match self {
-			&SmtpdProto::SMTP => "SMTP",
-			&SmtpdProto::ESMTP => "ESMTP",
-		};
-		write!(fmt, "{}", error)
-	}
-}
-
-impl fmt::Debug for SmtpdProto {
-	fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-		fmt::Display::fmt(self, fmt)
-	}
-}
-
 impl Smtpd {
 	pub fn client <'a>(&'a self) -> &'a str {
 		&self.raw[self.client_s..self.client_e]
@@ -158,107 +93,27 @@ impl SmtpdLogin {
 	}
 }
 
-impl SmtpdBad {
-	pub fn message <'a>(&'a self) -> &'a str {
-		&self.raw[self.message_s..self.message_e]
-	}
-	pub fn from <'a>(&'a self) -> &'a str {
-		&self.raw[self.from_s..self.from_e]
-	}
-	pub fn to <'a>(&'a self) -> Option<&'a str> {
-		if self.to_e != 0 {
-			Some(&self.raw[self.to_s..self.to_e])
-		} else {
-			None
-		}
-	}
-	pub fn helo <'a>(&'a self) -> &'a str {
-		&self.raw[self.helo_s..self.helo_e]
-	}
-}
-
 impl MessageParser for Smtpd {
 	fn parse(inner: Inner, start: usize) -> Result<Option<Message>, ParseError> {
 		match inner.queue_id() {
 			None => return Ok(None),
 			Some(_) => ()
 		};
-		let (bad, message_s) = {
+		let bad = {
 			let rest = &inner.raw[start..];
 			if rest.starts_with(" discard: ") {
-				(Some(SmtpdBadReason::Discard), start + 10)
+				Some(RejectReason::Discard)
 			} else if rest.starts_with(" reject: ") {
-				(Some(SmtpdBadReason::Reject), start + 9)
+				Some(RejectReason::Reject)
 			} else if rest.starts_with(" warn: ") {
-				(Some(SmtpdBadReason::Warn), start + 7)
+				Some(RejectReason::Warn)
 			} else {
-				(None, 0)
+				None
 			}
 		};
 		match bad {
 			None => (),
-			Some(reason) => {
-				let (message_e, from_s, from_e, to_s, to_e, proto, helo_s, helo_e) = {
-					let rest = &inner.raw[message_s..];
-					let pos = match rest.find(';') {
-						None => return Err(ParseError::SmtpdBadMessage),
-						Some(p) => p
-					};
-					let rest = &rest[pos..];
-					let message_e = message_s + pos;
-					if !rest.starts_with("; from=<") {
-						return Err(ParseError::SmtpdNoFrom);
-					}
-					let from_s = message_e + 8;
-					let rest = &rest[8..];
-					let pos = match rest.find('>') {
-						None => return Err(ParseError::SmtpdBadFrom),
-						Some(p) => p
-					};
-					let rest = &rest[pos..];
-					let from_e = from_s + pos;
-					let (rest, end, to_s, to_e) = {
-						if rest.starts_with("> to=<") {
-							let rest = &rest[6..];
-							let to_s = from_e + 6;
-							let pos = match rest.find('>') {
-								None => return Err(ParseError::SmtpdBadTo),
-								Some(p) => p
-							};
-							let rest = &rest[pos..];
-							let to_e = to_s + pos;
-							(rest, to_e, to_s, to_e)
-						} else {
-							(rest, from_e, 0, 0)
-						}
-					};
-					if !rest.starts_with("> proto=") {
-						return Err(ParseError::SmtpdNoProto);
-					}
-					let rest = &rest[8..];
-					let pos = match rest.find(' ') {
-						None => return Err(ParseError::SmtpdBadProto),
-						Some(p) => p
-					};
-					let proto = match &rest[..pos] {
-						"SMTP" => SmtpdProto::SMTP,
-						"ESMTP" => SmtpdProto::ESMTP,
-						_ => return Err(ParseError::SmtpdUnknownProto)
-					};
-					let rest = &rest[pos..];
-					if !rest.starts_with(" helo=<") {
-						return Err(ParseError::SmtpdNoHelo);
-					}
-					let rest = &rest[7..];
-					let helo_s = end + 8 + pos + 7;
-					let helo_e = match rest.find('>') {
-						None => return Err(ParseError::SmtpdBadHelo),
-						Some(p) => helo_s + p
-					};
-					(message_e, from_s, from_e, to_s, to_e, proto, helo_s, helo_e)
-				};
-				return Ok(Some(Message::SmtpdBad { m: SmtpdBad { inner: inner, reason:reason, message_s:message_s, message_e:message_e, from_s:from_s, from_e:from_e, to_s:to_s, to_e:to_e, proto:proto, helo_s:helo_s, helo_e:helo_e } }));
-			}
+			Some(reason) =>	return Reject::parse(inner, start, reason),
 		};
 		let (client_s, client_e, done) = {
 			let rest = &inner.raw[start..];
@@ -331,6 +186,8 @@ mod tests {
 	use super::super::Inner;
 	use super::super::Message;
 	use super::super::MessageParser;
+	use super::super::RejectReason;
+	use super::super::RejectProto;
 	use super::super::super::ParserConfig;
 	use super::super::super::ParseError;
 
@@ -357,105 +214,6 @@ mod tests {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => (),
 			Ok(x) => panic!("This should have been ignored ({:?})", x)
-		};
-	}
-
-	#[test]
-	fn bad_message() {
-		let s = "Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdBadMessage) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdBadMessage {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
-		};
-	}
-
-	#[test]
-	fn no_from() {
-		let s = "Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s'il s'agit d'une erreur;".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdNoFrom) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdNoFrom {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
-		};
-	}
-
-	#[test]
-	fn bad_from() {
-		let s = "Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address; from=<xyz".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdBadFrom) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdBadFrom {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
-		};
-	}
-
-	#[test]
-	fn bad_to() {
-		let s = "Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s'il s'agit d'une erreur; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdBadTo) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdBadTo {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
-		};
-	}
-
-	#[test]
-	fn no_proto() {
-		let s = "Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address; from=<massnewsletter4654654xel@gmail.com>".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdNoProto) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdNoProto {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
-		};
-	}
-
-	#[test]
-	fn bad_proto() {
-		let s = "Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s'il s'agit d'une erreur; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdBadProto) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdBadProto {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
-		};
-	}
-
-	#[test]
-	fn unknown_proto() {
-		let s = "Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address; from=<massnewsletter4654654xel@gmail.com> proto=XYZ ".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdUnknownProto) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdUnknownProto {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
-		};
-	}
-
-	#[test]
-	fn no_helo() {
-		let s = "Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s'il s'agit d'une erreur; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP ".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdNoHelo) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdNoHelo {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
-		};
-	}
-
-	#[test]
-	fn bad_helo() {
-		let s = "Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address; from=<massnewsletter4654654xel@gmail.com> proto=SMTP helo=<gmail.com".to_string();
-		match parse_smtpd(s) {
-			Err(ParseError::SmtpdBadHelo) => (),
-			Err(x) => panic!("Wrong error, should have been SmtpdBadHelo {}", x),
-			Ok(None) => panic!("This should not have been ignored"),
-			Ok(_) => panic!("This should have failed")
 		};
 	}
 
@@ -498,11 +256,11 @@ mod tests {
 		let smtpd = match parse_smtpd(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(Message::SmtpdBad{m:x})) => x,
+			Ok(Some(Message::Reject{m:x})) => x,
 			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		match smtpd.reason {
-			SmtpdBadReason::Discard => (),
+			RejectReason::Discard => (),
 			x => panic!("Parsed wrong reason: {}", x)
 		}
 		assert_eq!(smtpd.message(), "DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address");
@@ -512,11 +270,11 @@ mod tests {
 			Some(s) => panic!("Parsed a non existing to: {}", s)
 		};
 		match smtpd.proto {
-			SmtpdProto::SMTP => (),
+			RejectProto::SMTP => (),
 			x => panic!("Parsed wrong proto: {}", x)
 		}
 		assert_eq!(smtpd.helo(), "gmail.com");
-		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "SmtpdBad { inner: Inner { raw: \"Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address; from=<massnewsletter4654654xel@gmail.com> proto=SMTP helo=<gmail.com>\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 3199, queue_id_s: 43, queue_id_e: 53 }, reason: Discard, message_s: 64, message_e: 169, from_s: 177, from_e: 211, to_s: 0, to_e: 0, proto: SMTP, helo_s: 230, helo_e: 239 }");
+		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address; from=<massnewsletter4654654xel@gmail.com> proto=SMTP helo=<gmail.com>\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 3199, queue_id_s: 43, queue_id_e: 53 }, reason: Discard, message_s: 64, message_e: 169, from_s: 177, from_e: 211, to_s: 0, to_e: 0, proto: SMTP, helo_s: 230, helo_e: 239 }");
 	}
 
 	#[test]
@@ -525,11 +283,11 @@ mod tests {
 		let smtpd = match parse_smtpd(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(Message::SmtpdBad{m:x})) => x,
+			Ok(Some(Message::Reject{m:x})) => x,
 			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		match smtpd.reason {
-			SmtpdBadReason::Reject => (),
+			RejectReason::Reject => (),
 			x => panic!("Parsed wrong reason: {}", x)
 		}
 		assert_eq!(smtpd.message(), "DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s'il s'agit d'une erreur");
@@ -539,11 +297,11 @@ mod tests {
 			Some(s) => assert_eq!(s, "firstname.lastname@m4x.org")
 		};
 		match smtpd.proto {
-			SmtpdProto::ESMTP => (),
+			RejectProto::ESMTP => (),
 			x => panic!("Parsed wrong proto: {}", x)
 		}
 		assert_eq!(smtpd.helo(), "DiskStation");
-		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "SmtpdBad { inner: Inner { raw: \"Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s\\\'il s\\\'agit d\\\'une erreur; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP helo=<DiskStation>\", host_e: 23, queue_s: 24, queue_e: 31, process: Smtpd, pid: 5884, queue_id_s: 45, queue_id_e: 58 }, reason: Reject, message_s: 68, message_e: 293, from_s: 301, from_e: 327, to_s: 333, to_e: 359, proto: ESMTP, helo_s: 379, helo_e: 390 }");
+		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s\\\'il s\\\'agit d\\\'une erreur; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP helo=<DiskStation>\", host_e: 23, queue_s: 24, queue_e: 31, process: Smtpd, pid: 5884, queue_id_s: 45, queue_id_e: 58 }, reason: Reject, message_s: 68, message_e: 293, from_s: 301, from_e: 327, to_s: 333, to_e: 359, proto: ESMTP, helo_s: 379, helo_e: 390 }");
 	}
 
 	#[test]
@@ -552,11 +310,11 @@ mod tests {
 		let smtpd = match parse_smtpd(s) {
 			Err(x) => panic!("Parser Error: {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
-			Ok(Some(Message::SmtpdBad{m:x})) => x,
+			Ok(Some(Message::Reject{m:x})) => x,
 			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
 		};
 		match smtpd.reason {
-			SmtpdBadReason::Warn => (),
+			RejectReason::Warn => (),
 			x => panic!("Parsed wrong reason: {}", x)
 		}
 		assert_eq!(smtpd.message(), "RCPT from unknown[190.62.150.179]: Literal IP in HELO hostnames not allowed here, please check your configuration");
@@ -566,11 +324,11 @@ mod tests {
 			Some(s) => assert_eq!(s, "firstname.lastname@m4x.org")
 		};
 		match smtpd.proto {
-			SmtpdProto::ESMTP => (),
+			RejectProto::ESMTP => (),
 			x => panic!("Parsed wrong proto: {}", x)
 		}
 		assert_eq!(smtpd.helo(), "[127.0.0.2]");
-		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "SmtpdBad { inner: Inner { raw: \"Aug  4 00:49:53 yuuai postfix/smtpd[30778]: 0D71E208B6: warn: RCPT from unknown[190.62.150.179]: Literal IP in HELO hostnames not allowed here, please check your configuration; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP helo=<[127.0.0.2]>\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 30778, queue_id_s: 44, queue_id_e: 54 }, reason: Warn, message_s: 62, message_e: 175, from_s: 183, from_e: 209, to_s: 215, to_e: 241, proto: ESMTP, helo_s: 261, helo_e: 272 }");
+		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Aug  4 00:49:53 yuuai postfix/smtpd[30778]: 0D71E208B6: warn: RCPT from unknown[190.62.150.179]: Literal IP in HELO hostnames not allowed here, please check your configuration; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP helo=<[127.0.0.2]>\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 30778, queue_id_s: 44, queue_id_e: 54 }, reason: Warn, message_s: 62, message_e: 175, from_s: 183, from_e: 209, to_s: 215, to_e: 241, proto: ESMTP, helo_s: 261, helo_e: 272 }");
 	}
 
 	#[test]

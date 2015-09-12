@@ -33,16 +33,16 @@ pub enum ParseError {
 	SmtpdNonEndingMethod,
 	SmtpdUnknownMethod,
 	SmtpdNoUsername,
-	SmtpdBadMessage,
-	SmtpdNoFrom,
-	SmtpdBadFrom,
-	SmtpdNoTo,
-	SmtpdBadTo,
-	SmtpdNoProto,
-	SmtpdBadProto,
-	SmtpdUnknownProto,
-	SmtpdNoHelo,
-	SmtpdBadHelo,
+	RejectBadMessage,
+	RejectNoFrom,
+	RejectBadFrom,
+	RejectNoTo,
+	RejectBadTo,
+	RejectNoProto,
+	RejectBadProto,
+	RejectUnknownProto,
+	RejectNoHelo,
+	RejectBadHelo,
 	CleanupNoMessageID,
 	QmgrNoFrom,
 	QmgrBadFrom,
@@ -90,16 +90,16 @@ impl fmt::Display for ParseError {
 			&ParseError::SmtpdNoUsername => "Smtpd without a username",
 			&ParseError::SmtpdNonEndingOrigQueue => "Smtpd with origin queue ID but nothing else",
 			&ParseError::SmtpdNoOrigClient => "Smtpd with origin queue ID but no origin client",
-			&ParseError::SmtpdBadMessage => "Smtpd non ending message",
-			&ParseError::SmtpdNoFrom => "Smtpd no from",
-			&ParseError::SmtpdBadFrom => "Smtpd non ending from",
-			&ParseError::SmtpdNoTo => "Smtpd no to",
-			&ParseError::SmtpdBadTo => "Smtpd non ending to",
-			&ParseError::SmtpdNoProto => "Smtpd no proto",
-			&ParseError::SmtpdBadProto => "Smtpd non endin proto",
-			&ParseError::SmtpdUnknownProto => "Smtpd unknown proto",
-			&ParseError::SmtpdNoHelo => "Smtpd no helo",
-			&ParseError::SmtpdBadHelo => "Smtpd non ending helo",
+			&ParseError::RejectBadMessage => "Reject non ending message",
+			&ParseError::RejectNoFrom => "Reject no from",
+			&ParseError::RejectBadFrom => "Reject non ending from",
+			&ParseError::RejectNoTo => "Reject no to",
+			&ParseError::RejectBadTo => "Reject non ending to",
+			&ParseError::RejectNoProto => "Reject no proto",
+			&ParseError::RejectBadProto => "Reject non endin proto",
+			&ParseError::RejectUnknownProto => "Reject unknown proto",
+			&ParseError::RejectNoHelo => "Reject no helo",
+			&ParseError::RejectBadHelo => "Reject non ending helo",
 			&ParseError::CleanupNoMessageID => "Cleanup without any message id",
 			&ParseError::QmgrNoFrom => "Qmgr no from",
 			&ParseError::QmgrBadFrom => "Qmgr non ending from",
@@ -163,16 +163,16 @@ mod tests {
 		assert_print_eq(ParseError::SmtpdNonEndingMethod, "Smtpd with non ending method");
 		assert_print_eq(ParseError::SmtpdUnknownMethod, "Smtpd with unkown method");
 		assert_print_eq(ParseError::SmtpdNoUsername, "Smtpd without a username");
-		assert_print_eq(ParseError::SmtpdBadMessage, "Smtpd non ending message");
-		assert_print_eq(ParseError::SmtpdNoFrom, "Smtpd no from");
-		assert_print_eq(ParseError::SmtpdBadFrom, "Smtpd non ending from");
-		assert_print_eq(ParseError::SmtpdNoTo, "Smtpd no to");
-		assert_print_eq(ParseError::SmtpdBadTo, "Smtpd non ending to");
-		assert_print_eq(ParseError::SmtpdNoProto, "Smtpd no proto");
-		assert_print_eq(ParseError::SmtpdBadProto, "Smtpd non endin proto");
-		assert_print_eq(ParseError::SmtpdUnknownProto, "Smtpd unknown proto");
-		assert_print_eq(ParseError::SmtpdNoHelo, "Smtpd no helo");
-		assert_print_eq(ParseError::SmtpdBadHelo, "Smtpd non ending helo");
+		assert_print_eq(ParseError::RejectBadMessage, "Reject non ending message");
+		assert_print_eq(ParseError::RejectNoFrom, "Reject no from");
+		assert_print_eq(ParseError::RejectBadFrom, "Reject non ending from");
+		assert_print_eq(ParseError::RejectNoTo, "Reject no to");
+		assert_print_eq(ParseError::RejectBadTo, "Reject non ending to");
+		assert_print_eq(ParseError::RejectNoProto, "Reject no proto");
+		assert_print_eq(ParseError::RejectBadProto, "Reject non endin proto");
+		assert_print_eq(ParseError::RejectUnknownProto, "Reject unknown proto");
+		assert_print_eq(ParseError::RejectNoHelo, "Reject no helo");
+		assert_print_eq(ParseError::RejectBadHelo, "Reject non ending helo");
 		assert_print_eq(ParseError::CleanupNoMessageID, "Cleanup without any message id");
 		assert_print_eq(ParseError::QmgrNoFrom, "Qmgr no from");
 		assert_print_eq(ParseError::QmgrBadFrom, "Qmgr non ending from");
