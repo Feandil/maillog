@@ -28,6 +28,8 @@ pub struct Reject {
 	pub proto: RejectProto,
 	helo_s: usize,
 	helo_e: usize,
+	explanation_s: usize,
+	explanation_e: usize,
 }
 
 impl Deref for Reject {
@@ -87,11 +89,18 @@ impl Reject {
 	pub fn helo <'a>(&'a self) -> &'a str {
 		&self.raw[self.helo_s..self.helo_e]
 	}
+	pub fn explanation<'a>(&'a self) -> Option<&'a str> {
+		if self.explanation_e != 0 {
+			Some(&self.raw[self.explanation_s..self.explanation_e])
+		} else {
+			None
+		}
+	}
 }
 
 impl Reject {
 	pub fn parse(inner: Inner, start: usize, reason: RejectReason) -> Result<Option<Message>, ParseError> {
-		let (message_s, message_e, from_s, from_e, to_s, to_e, proto, helo_s, helo_e) = {
+		let (message_s, message_e, from_s, from_e, to_s, to_e, proto, helo_s, helo_e, explanation_s, explanation_e) = {
 			let message_s = match reason {
 				RejectReason::Discard => start + 10,
 				RejectReason::Reject => start + 9,
@@ -149,13 +158,21 @@ impl Reject {
 			}
 			let rest = &rest[7..];
 			let helo_s = end + 8 + pos + 7;
-			let helo_e = match rest.find('>') {
+			let pos = match rest.find('>') {
 				None => return Err(ParseError::RejectBadHelo),
-				Some(p) => helo_s + p
+				Some(p) => p
 			};
-			(message_s, message_e, from_s, from_e, to_s, to_e, proto, helo_s, helo_e)
+			let helo_e = helo_s + pos;
+			let (explanation_s, explanation_e) = {
+				if rest[pos..].starts_with(">: ") {
+					(helo_e + 3, helo_s + rest.len())
+				} else {
+					(0, 0)
+				}
+			};
+			(message_s, message_e, from_s, from_e, to_s, to_e, proto, helo_s, helo_e, explanation_s, explanation_e)
 		};
-		Ok(Some(Message::Reject { m: Reject { inner: inner, reason:reason, message_s:message_s, message_e:message_e, from_s:from_s, from_e:from_e, to_s:to_s, to_e:to_e, proto:proto, helo_s:helo_s, helo_e:helo_e } }))
+		Ok(Some(Message::Reject { m: Reject { inner: inner, reason:reason, message_s:message_s, message_e:message_e, from_s:from_s, from_e:from_e, to_s:to_s, to_e:to_e, proto:proto, helo_s:helo_s, helo_e:helo_e, explanation_s:explanation_s, explanation_e:explanation_e } }))
 	}
 }
 

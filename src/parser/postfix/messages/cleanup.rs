@@ -3,6 +3,8 @@ use super::super::ParseError;
 use super::Inner;
 use super::Message;
 use super::MessageParser;
+use super::Reject;
+use super::RejectReason;
 
 #[derive(Debug)]
 pub struct Cleanup {
@@ -27,18 +29,27 @@ impl Cleanup {
 }
 impl MessageParser for Cleanup {
 	fn parse(inner: Inner, start: usize) -> Result<Option<Message>, ParseError> {
-		{
-			match inner.queue_id() {
-				Some(_) => (),
-				None => {
-					let rest = &inner.raw[start..];
-					if rest.starts_with(" warning:") {
-						return Ok(None)
-					}
+		match inner.queue_id() {
+			Some(_) => (),
+			None => {
+				let rest = &inner.raw[start..];
+				if rest.starts_with(" warning:") {
+					return Ok(None);
 				}
-			};
-
+			}
 		}
+		let bad = {
+			let rest = &inner.raw[start..];
+			if rest.starts_with(" reject: ") {
+				Some(RejectReason::Reject)
+			} else {
+				None
+			}
+		};
+		match bad {
+			None => (),
+			Some(reason) => return Reject::parse(inner, start, reason),
+		};
 		let (message_id_s, message_id_e, resent) = {
 			let rest = &inner.raw[start..];
 			let (rest, message_id_s, resent) = {
@@ -78,6 +89,8 @@ mod tests {
 	use super::super::Inner;
 	use super::super::Message;
 	use super::super::MessageParser;
+	use super::super::RejectProto;
+	use super::super::RejectReason;
 	use super::super::super::ParserConfig;
 	use super::super::super::ParseError;
 
@@ -99,6 +112,37 @@ mod tests {
 			Ok(None) => (),
 			Ok(_) => panic!("This should have been ignored"),
 		};
+	}
+
+	#[test]
+	fn rejected() {
+		let s = "Aug  4 09:07:20 yuuai postfix-in/cleanup[16854]: CAD22209F3: reject: header X-Mailer: XYZxyz from 1.mo53.mail-out.ovh.net[178.32.108.164]; from=<aaa@bbb.ccc> to=<xxx@yyy.zzz> proto=ESMTP helo=<1.mo53.mail-out.ovh.net>: 5.7.1 spam client software rule".to_string();
+		let cleanup = match parse_cleanup(s) {
+			Err(x) => panic!("Failed to parse {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some(Message::Reject{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
+		};
+		match cleanup.reason {
+			RejectReason::Reject => (),
+			x => panic!("Parsed wrong reason: {}", x)
+		}
+		assert_eq!(cleanup.message(), "header X-Mailer: XYZxyz from 1.mo53.mail-out.ovh.net[178.32.108.164]");
+		assert_eq!(cleanup.from(), "aaa@bbb.ccc");
+		match cleanup.to() {
+			None => panic!("Failed to parse to"),
+			Some(s) => assert_eq!(s, "xxx@yyy.zzz")
+		}
+		match cleanup.proto {
+			RejectProto::ESMTP => (),
+			x => panic!("Parsed wrong proto: {}", x)
+		}
+		assert_eq!(cleanup.helo(), "1.mo53.mail-out.ovh.net");
+		match cleanup.explanation() {
+			None => panic!("Failed to parse explanation"),
+			Some(s) => assert_eq!(s, "5.7.1 spam client software rule"),
+		}
+		assert_eq!(fmt::format(format_args!("{:?}", cleanup)), "Reject { inner: Inner { raw: \"Aug  4 09:07:20 yuuai postfix-in/cleanup[16854]: CAD22209F3: reject: header X-Mailer: XYZxyz from 1.mo53.mail-out.ovh.net[178.32.108.164]; from=<aaa@bbb.ccc> to=<xxx@yyy.zzz> proto=ESMTP helo=<1.mo53.mail-out.ovh.net>: 5.7.1 spam client software rule\", host_e: 21, queue_s: 22, queue_e: 32, process: Cleanup, pid: 16854, queue_id_s: 49, queue_id_e: 59 }, reason: Reject, message_s: 69, message_e: 137, from_s: 145, from_e: 156, to_s: 162, to_e: 173, proto: ESMTP, helo_s: 193, helo_e: 216, explanation_s: 219, explanation_e: 250 }");
 	}
 
 	#[test]

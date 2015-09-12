@@ -274,7 +274,11 @@ mod tests {
 			x => panic!("Parsed wrong proto: {}", x)
 		}
 		assert_eq!(smtpd.helo(), "gmail.com");
-		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address; from=<massnewsletter4654654xel@gmail.com> proto=SMTP helo=<gmail.com>\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 3199, queue_id_s: 43, queue_id_e: 53 }, reason: Discard, message_s: 64, message_e: 169, from_s: 177, from_e: 211, to_s: 0, to_e: 0, proto: SMTP, helo_s: 230, helo_e: 239 }");
+		match smtpd.explanation() {
+			None => (),
+			Some(s) => panic!("Parsed a non existing explanation: {}", s)
+		}
+		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address; from=<massnewsletter4654654xel@gmail.com> proto=SMTP helo=<gmail.com>\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 3199, queue_id_s: 43, queue_id_e: 53 }, reason: Discard, message_s: 64, message_e: 169, from_s: 177, from_e: 211, to_s: 0, to_e: 0, proto: SMTP, helo_s: 230, helo_e: 239, explanation_s: 0, explanation_e: 0 }");
 	}
 
 	#[test]
@@ -301,7 +305,11 @@ mod tests {
 			x => panic!("Parsed wrong proto: {}", x)
 		}
 		assert_eq!(smtpd.helo(), "DiskStation");
-		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s\\\'il s\\\'agit d\\\'une erreur; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP helo=<DiskStation>\", host_e: 23, queue_s: 24, queue_e: 31, process: Smtpd, pid: 5884, queue_id_s: 45, queue_id_e: 58 }, reason: Reject, message_s: 68, message_e: 293, from_s: 301, from_e: 327, to_s: 333, to_e: 359, proto: ESMTP, helo_s: 379, helo_e: 390 }");
+		match smtpd.explanation() {
+			None => (),
+			Some(s) => panic!("Parsed a non existing explanation: {}", s)
+		}
+		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s\\\'il s\\\'agit d\\\'une erreur; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP helo=<DiskStation>\", host_e: 23, queue_s: 24, queue_e: 31, process: Smtpd, pid: 5884, queue_id_s: 45, queue_id_e: 58 }, reason: Reject, message_s: 68, message_e: 293, from_s: 301, from_e: 327, to_s: 333, to_e: 359, proto: ESMTP, helo_s: 379, helo_e: 390, explanation_s: 0, explanation_e: 0 }");
 	}
 
 	#[test]
@@ -328,7 +336,11 @@ mod tests {
 			x => panic!("Parsed wrong proto: {}", x)
 		}
 		assert_eq!(smtpd.helo(), "[127.0.0.2]");
-		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Aug  4 00:49:53 yuuai postfix/smtpd[30778]: 0D71E208B6: warn: RCPT from unknown[190.62.150.179]: Literal IP in HELO hostnames not allowed here, please check your configuration; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP helo=<[127.0.0.2]>\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 30778, queue_id_s: 44, queue_id_e: 54 }, reason: Warn, message_s: 62, message_e: 175, from_s: 183, from_e: 209, to_s: 215, to_e: 241, proto: ESMTP, helo_s: 261, helo_e: 272 }");
+		match smtpd.explanation() {
+			None => (),
+			Some(s) => panic!("Parsed a non existing explanation: {}", s)
+		}
+		assert_eq!(fmt::format(format_args!("{:?}", smtpd)), "Reject { inner: Inner { raw: \"Aug  4 00:49:53 yuuai postfix/smtpd[30778]: 0D71E208B6: warn: RCPT from unknown[190.62.150.179]: Literal IP in HELO hostnames not allowed here, please check your configuration; from=<firstname.lastname@m4x.org> to=<firstname.lastname@m4x.org> proto=ESMTP helo=<[127.0.0.2]>\", host_e: 21, queue_s: 22, queue_e: 29, process: Smtpd, pid: 30778, queue_id_s: 44, queue_id_e: 54 }, reason: Warn, message_s: 62, message_e: 175, from_s: 183, from_e: 209, to_s: 215, to_e: 241, proto: ESMTP, helo_s: 261, helo_e: 272, explanation_s: 0, explanation_e: 0 }");
 	}
 
 	#[test]
