@@ -106,16 +106,25 @@ impl Reject {
 				RejectReason::Reject => start + 9,
 				RejectReason::Warn => start + 7,
 			};
-			let rest = &inner.raw[message_s..];
-			let pos = match rest.find(';') {
-				None => return Err(ParseError::RejectBadMessage),
-				Some(p) => p
+			let mut rest = &inner.raw[message_s..];
+			let mut message_e = message_s;
+			loop {
+				let pos = match rest.find(';') {
+					None => return Err(ParseError::RejectNoFrom),
+					Some(p) => p
+				};
+				message_e += pos;
+				rest = &rest[pos..];
+				if rest.starts_with("; from=<") {
+					break;
+				}
+				if rest.len() > 1 {
+					message_e += 1;
+					rest = &rest[1..];
+				} else {
+					return Err(ParseError::RejectNoFrom);
+				}
 			};
-			let rest = &rest[pos..];
-			let message_e = message_s + pos;
-			if !rest.starts_with("; from=<") {
-				return Err(ParseError::RejectNoFrom);
-			}
 			let from_s = message_e + 8;
 			let rest = &rest[8..];
 			let pos = match rest.find('>') {
@@ -197,18 +206,15 @@ mod tests {
 	}
 
 	#[test]
-	fn bad_message() {
+	fn no_from() {
 		let s = "Aug  4 00:00:12 yuuai postfix/smtpd[3199]: 89EF32091D: discard: DATA from scm.seog.co.kr[61.36.79.99]: <DATA>: Data command Recipient list contains a blacklisted address".to_string();
 		match parse_reject(s, RejectReason::Discard) {
-			Err(ParseError::RejectBadMessage) => (),
-			Err(x) => panic!("Wrong error, should have been RejectBadMessage {}", x),
+			Err(ParseError::RejectNoFrom) => (),
+			Err(x) => panic!("Wrong error, should have been RejectNoFrom {}", x),
 			Ok(None) => panic!("This should not have been ignored"),
 			Ok(_) => panic!("This should have failed")
 		};
-	}
 
-	#[test]
-	fn no_from() {
 		let s = "Jul 25 00:00:09 svoboda postfix/smtpd[5884]: 87E611409B022: reject: DATA from 99-46-141-195.lightspeed.sntcca.sbcglobal.net[99.46.141.195]: 421 4.7.1 <DATA>: Data command rejected: Tu (firstname.lastname) as envoye trop de mails recement. Merci de contacter le support s'il s'agit d'une erreur;".to_string();
 		match parse_reject(s, RejectReason::Reject) {
 			Err(ParseError::RejectNoFrom) => (),

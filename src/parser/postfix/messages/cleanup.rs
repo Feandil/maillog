@@ -146,6 +146,37 @@ mod tests {
 	}
 
 	#[test]
+	fn rejected_crazy_msg() {
+		let s = "Aug  4 14:38:42 yuuai postfix-in/cleanup[32061]: 4780620922: reject: header Content-Type: image/jpeg;??name=image1.JPG;??x-apple-part-url=\"X.MA1.1438681780@aol.com\" from st11p01im-asmtp001.me.com[17.172.204.151]; from=<> to=<xxx@yyy.zzz> proto=ESMTP helo=<st11p01im-asmtp001.me.com>: 5.7.1 Files attached to emails that contain or end in \"com\" are prohibited on this server as they may contain viruses. The file named \"image1.JPG;??x-apple-part-url=\"X.MA1.1438681780@aol.com\" was rejected.".to_string();
+		let cleanup = match parse_cleanup(s) {
+			Err(x) => panic!("Failed to parse {}", x),
+			Ok(None) => panic!("This should not have been ignored"),
+			Ok(Some(Message::Reject{m:x})) => x,
+			Ok(Some(x)) => panic!("Wrong message parsed: {:?}", x)
+		};
+		match cleanup.reason {
+			RejectReason::Reject => (),
+			x => panic!("Parsed wrong reason: {}", x)
+		}
+		assert_eq!(cleanup.message(), "header Content-Type: image/jpeg;??name=image1.JPG;??x-apple-part-url=\"X.MA1.1438681780@aol.com\" from st11p01im-asmtp001.me.com[17.172.204.151]");
+		assert_eq!(cleanup.from(), "");
+		match cleanup.to() {
+			None => panic!("Failed to parse to"),
+			Some(s) => assert_eq!(s, "xxx@yyy.zzz")
+		}
+		match cleanup.proto {
+			RejectProto::ESMTP => (),
+			x => panic!("Parsed wrong proto: {}", x)
+		}
+		assert_eq!(cleanup.helo(), "st11p01im-asmtp001.me.com");
+		match cleanup.explanation() {
+			None => panic!("Failed to parse explanation"),
+			Some(s) => assert_eq!(s, "5.7.1 Files attached to emails that contain or end in \"com\" are prohibited on this server as they may contain viruses. The file named \"image1.JPG;??x-apple-part-url=\"X.MA1.1438681780@aol.com\" was rejected."),
+		}
+		assert_eq!(fmt::format(format_args!("{:?}", cleanup)), "Reject { inner: Inner { raw: \"Aug  4 14:38:42 yuuai postfix-in/cleanup[32061]: 4780620922: reject: header Content-Type: image/jpeg;??name=image1.JPG;??x-apple-part-url=\\\"X.MA1.1438681780@aol.com\\\" from st11p01im-asmtp001.me.com[17.172.204.151]; from=<> to=<xxx@yyy.zzz> proto=ESMTP helo=<st11p01im-asmtp001.me.com>: 5.7.1 Files attached to emails that contain or end in \\\"com\\\" are prohibited on this server as they may contain viruses. The file named \\\"image1.JPG;??x-apple-part-url=\\\"X.MA1.1438681780@aol.com\\\" was rejected.\", host_e: 21, queue_s: 22, queue_e: 32, process: Cleanup, pid: 32061, queue_id_s: 49, queue_id_e: 59 }, reason: Reject, message_s: 69, message_e: 211, from_s: 219, from_e: 219, to_s: 225, to_e: 236, proto: ESMTP, helo_s: 256, helo_e: 281, explanation_s: 284, explanation_e: 489 }");
+	}
+
+	#[test]
 	fn no_orig_client() {
 		let s ="Aug  4 00:00:01 yuuai postfix-in/cleanup[22502]: A071220883: message-id".to_string();
 		match parse_cleanup(s) {
