@@ -9,8 +9,8 @@ pub struct Qmgr {
 	inner: Inner,
 	from_s: usize,
 	from_e: usize,
-	size: u64,
-	nrcpt: u32,
+	pub size: u64,
+	pub nrcpt: u32,
 }
 
 #[derive(Debug)]

@@ -14,7 +14,7 @@ pub struct Forward {
 	relay_s: usize,
 	relay_e: usize,
 // We ignore the delays
-	dsn: [u8; 3],
+	pub dsn: [u8; 3],
 	status_s: usize,
 	status_e: usize,
 	child_queue_id_s: usize,	
