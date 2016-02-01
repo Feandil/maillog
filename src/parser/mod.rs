@@ -1,2 +1,2 @@
-mod postfix;
+pub mod postfix;
 mod bogofilter;
